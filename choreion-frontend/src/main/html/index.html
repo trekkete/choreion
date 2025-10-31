@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choreography Tool</title>
+    <script src="https://unpkg.com/konva@10/konva.min.js"></script>
+    <script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .canvas-section {
+            width: 70%;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            background: #ecf0f1;
+        }
+
+        .canvas-controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .mode-info {
+            padding: 10px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .canvas-wrapper {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            padding: 1em;
+        }
+
+        #container {
+            border: 2px solid #333;
+        }
+
+        .sidebar {
+            width: 30%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+        }
+
+        .tabs {
+            display: flex;
+            background: #34495e;
+            border-bottom: 2px solid #2c3e50;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            color: white;
+            cursor: pointer;
+            background: #34495e;
+            border: none;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        .tab:hover {
+            background: #415a77;
+        }
+
+        .tab.active {
+            background: white;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        .choreography-list, .person-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .choreography-item, .person-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .choreography-item:hover, .person-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .choreography-item.selected, .person-item.selected {
+            background: #d4edff;
+            border-color: #3498db;
+            font-weight: bold;
+        }
+
+        .choreography-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .choreography-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .choreography-date {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 4px;
+        }
+
+        .person-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .person-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .person-color-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            border: 2px solid #333;
+        }
+
+        .person-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        button {
+            padding: 10px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background: #3498db;
+            color: white;
+            transition: background 0.3s;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background: #27ae60;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+        }
+
+        .btn-warning:hover {
+            background: #d68910;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        input[type="text"], input[type="color"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        input[type="range"] {
+            width: 150px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+            display: block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .playback-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .add-person-form {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="header">
+        <h1>Choreography Animation Tool</h1>
+        <div class="header-controls">
+            <button id="toggleMode">Switch to Playback Mode</button>
+            <button id="resetPositions">Reset Positions</button>
+            <button class="btn-danger" id="clearAll">Clear Routes</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="canvas-section">
+            <div class="canvas-controls">
+                <div class="mode-info" id="modeInfo">
+                    <strong>Design Mode:</strong> Select a person from the sidebar and click on the grid to create their route.
+                </div>
+
+                <div id="playbackControls" style="display: none;">
+                    <div class="playback-controls">
+                        <div class="control-group">
+                            <button id="playPause">▶ Play</button>
+                            <button id="stop">⏹ Stop</button>
+                        </div>
+                        <div class="control-group">
+                            <label>Speed:</label>
+                            <input type="range" id="speed" min="0.5" max="3" step="0.1" value="1">
+                            <span id="speedValue">1.0x</span>
+                        </div>
+                        <div class="control-group">
+                            <label>Time:</label>
+                            <span id="timeDisplay">0.0s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="canvas-wrapper">
+                <div id="container"></div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="tabs">
+                <button class="tab active" data-tab="choreographies">Choreographies</button>
+                <button class="tab" data-tab="people">People</button>
+            </div>
+
+            <div id="choreographiesTab" class="tab-content active">
+                <div class="section-title">Choreographies</div>
+
+                <div class="form-group">
+                    <input type="text" id="choreographyName" placeholder="Choreography name...">
+                </div>
+
+                <div class="form-row">
+                    <button class="btn-success" id="saveChoreography" style="flex: 1;">💾 Save</button>
+                    <button class="btn-danger btn-small" id="deleteChoreography">🗑️</button>
+                </div>
+
+                <div id="statusMessage" class="status"></div>
+
+                <div class="section-title" style="margin-top: 20px;">Saved Choreographies</div>
+                <div id="choreographyList" class="choreography-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎭</div>
+                        <div>No choreographies yet</div>
+                        <div style="font-size: 12px;">Create one by designing routes and clicking Save</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="peopleTab" class="tab-content">
+                <div class="section-title">Add New Person</div>
+
+                <div class="add-person-form">
+                    <div class="form-group">
+                        <label>Name:</label>
+                        <input type="text" id="newPersonName" placeholder="Person name...">
+                    </div>
+                    <div class="form-group">
+                        <label>Color:</label>
+                        <input type="color" id="newPersonColor" value="#3498db">
+                    </div>
+                    <button class="btn-success" id="addPerson" style="width: 100%;">➕ Add Person</button>
+                </div>
+
+                <div class="section-title">People (Click to design route)</div>
+                <div id="personList" class="person-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://localhost:8080/api';
+
+    const GRID_SIZE = 600;
+    const GRID_SPACING = 15;
+    const PERSON_RADIUS = 8;
+
+    let stage, layer, gridLayer;
+    let people = [];
+    let routes = {};
+    let mode = 'design';
+    let selectedPerson = null;
+    let isPlaying = false;
+    let animationTime = 0;
+    let lastTime = null;
+    let playbackSpeed = 1;
+    let animationFrame = null;
+    let currentChoreographyId = null;
+    let choreographies = [];
+
+    // API Functions
+    async function fetchPeople() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/people`);
+            if (!response.ok) throw new Error('Failed to fetch people');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching people:', error);
+            showStatus('Error loading people from server', 'error');
+            return null;
+        }
+    }
+
+    async function fetchChoreographies() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/choreographies`);
+            if (!response.ok) throw new Error('Failed to fetch choreographies');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching choreographies:', error);
+            showStatus('Error loading choreographies from server', 'error');
+            return [];
+        }
+    }
+
+    async function fetchChoreography(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/choreographies/${id}`);
+            if (!response.ok) throw new Error('Failed to fetch choreography');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching choreography:', error);
+            showStatus('Error loading choreography', 'error');
+            return null;
+        }
+    }
+
+    async function saveChoreography() {
+        const name = document.getElementById('choreographyName').value.trim();
+        if (!name) {
+            showStatus('Please enter a choreography name', 'error');
+            return;
+        }
+
+        const choreographyData = {
+            id: currentChoreographyId,
+            name: name,
+            routes: routes
+        };
+
+        try {
+            const url = currentChoreographyId
+                ? `${API_BASE_URL}/choreographies/${currentChoreographyId}`
+                : `${API_BASE_URL}/choreographies`;
+
+            const method = currentChoreographyId ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(choreographyData)
+            });
+
+            if (!response.ok) throw new Error('Failed to save choreography');
+
+            const saved = await response.json();
+            currentChoreographyId = saved.id;
+
+            showStatus('Choreography saved successfully!', 'success');
+            await loadChoreographyList();
+        } catch (error) {
+            console.error('Error saving choreography:', error);
+            showStatus('Error saving choreography', 'error');
+        }
+    }
+
+    async function deleteChoreography() {
+        if (!currentChoreographyId) {
+            showStatus('Please select a choreography to delete', 'error');
+            return;
+        }
+
+        if (!confirm('Are you sure you want to delete this choreography?')) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/choreographies/${currentChoreographyId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) throw new Error('Failed to delete choreography');
+
+            showStatus('Choreography deleted successfully!', 'success');
+            currentChoreographyId = null;
+            document.getElementById('choreographyName').value = '';
+            await loadChoreographyList();
+            clearAllRoutes(false);
+        } catch (error) {
+            console.error('Error deleting choreography:', error);
+            showStatus('Error deleting choreography', 'error');
+        }
+    }
+
+    async function loadChoreographyFromItem(id) {
+        const choreography = await fetchChoreography(id);
+        if (choreography) {
+            currentChoreographyId = choreography.id;
+            document.getElementById('choreographyName').value = choreography.name;
+            routes = choreography.routes || {};
+
+            people.forEach((person, idx) => {
+                if (!routes[idx] || routes[idx].length === 0) {
+                    routes[idx] = [{x: person.startX, y: person.startY}];
+                }
+            });
+
+            resetPositions();
+            redrawRoutes();
+            showStatus('Choreography loaded successfully!', 'success');
+
+            renderChoreographyList();
+        }
+    }
+
+    async function loadChoreographyList() {
+        choreographies = await fetchChoreographies();
+        renderChoreographyList();
+    }
+
+    function renderChoreographyList() {
+        const container = document.getElementById('choreographyList');
+
+        if (choreographies.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🎭</div>
+                    <div>No choreographies yet</div>
+                    <div style="font-size: 12px;">Create one by designing routes and clicking Save</div>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = '';
+        choreographies.forEach(choreo => {
+            const item = document.createElement('div');
+            item.className = 'choreography-item';
+            if (choreo.id === currentChoreographyId) {
+                item.classList.add('selected');
+            }
+
+            const date = new Date(choreo.updatedAt);
+            const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+
+            item.innerHTML = `
+                <div class="choreography-item-header">
+                    <div>
+                        <div class="choreography-name">${choreo.name}</div>
+                        <div class="choreography-date">${dateStr}</div>
+                    </div>
+                </div>
+            `;
+
+            item.addEventListener('click', () => loadChoreographyFromItem(choreo.id));
+            container.appendChild(item);
+        });
+    }
+
+    async function addPerson() {
+        const name = document.getElementById('newPersonName').value.trim();
+        const color = document.getElementById('newPersonColor').value;
+
+        if (!name) {
+            showStatus('Please enter a person name', 'error');
+            return;
+        }
+
+        const nextIndex = people.length;
+        const startX = GRID_SPACING + (nextIndex % 5) * 150;
+        const startY = GRID_SPACING + Math.floor(nextIndex / 5) * 150;
+
+        const personData = {
+            name: name,
+            color: color,
+            startX: startX,
+            startY: startY
+        };
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/people`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(personData)
+            });
+
+            if (!response.ok) throw new Error('Failed to add person');
+
+            const saved = await response.json();
+
+            // Add to canvas
+            const circle = new Konva.Circle({
+                x: startX,
+                y: startY,
+                radius: PERSON_RADIUS,
+                fill: color,
+                stroke: '#333',
+                strokeWidth: 2,
+                id: `person-${saved.id}`
+            });
+
+            const label = new Konva.Text({
+                x: startX - 6,
+                y: startY - 7,
+                text: name.substring(0, 1),
+                fontSize: 14,
+                fontStyle: 'bold',
+                fill: 'white'
+            });
+
+            people.push({
+                id: saved.id,
+                name: saved.name,
+                color: saved.color,
+                circle,
+                label,
+                startX,
+                startY
+            });
+            routes[people.length - 1] = [{x: startX, y: startY}];
+
+            layer.add(circle);
+            layer.add(label);
+            layer.batchDraw();
+
+            document.getElementById('newPersonName').value = '';
+            renderPersonList();
+            showStatus('Person added successfully!', 'success');
+        } catch (error) {
+            console.error('Error adding person:', error);
+            showStatus('Error adding person', 'error');
+        }
+    }
+
+    async function removePerson(index) {
+        if (!confirm(`Remove ${people[index].name}?`)) return;
+
+        try {
+            const person = people[index];
+            const response = await fetch(`${API_BASE_URL}/people/${person.id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) throw new Error('Failed to remove person');
+
+            person.circle.destroy();
+            person.label.destroy();
+            people.splice(index, 1);
+            delete routes[index];
+
+            // Reindex routes
+            const newRoutes = {};
+            Object.keys(routes).forEach(key => {
+                const numKey = parseInt(key);
+                if (numKey > index) {
+                    newRoutes[numKey - 1] = routes[key];
+                } else {
+                    newRoutes[numKey] = routes[key];
+                }
+            });
+            routes = newRoutes;
+
+            if (selectedPerson === index) {
+                selectedPerson = null;
+            } else if (selectedPerson > index) {
+                selectedPerson--;
+            }
+
+            layer.batchDraw();
+            renderPersonList();
+            redrawRoutes();
+            showStatus('Person removed successfully!', 'success');
+        } catch (error) {
+            console.error('Error removing person:', error);
+            showStatus('Error removing person', 'error');
+        }
+    }
+
+    function renderPersonList() {
+        const container = document.getElementById('personList');
+        container.innerHTML = '';
+
+        if (people.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">👥</div>
+                    <div>No people yet</div>
+                    <div style="font-size: 12px;">Add people to start creating choreographies</div>
+                </div>
+            `;
+            return;
+        }
+
+        people.forEach((person, index) => {
+            const item = document.createElement('div');
+            item.className = 'person-item';
+            if (selectedPerson === index) {
+                item.classList.add('selected');
+            }
+
+            item.innerHTML = `
+                <div class="person-info">
+                    <div class="person-color-box" style="background: ${person.color};"></div>
+                    <div class="person-name">${person.name}</div>
+                </div>
+                <button class="btn-danger btn-small" onclick="removePerson(${index})">✕</button>
+            `;
+
+            item.querySelector('.person-info').addEventListener('click', () => selectPerson(index));
+            container.appendChild(item);
+        });
+    }
+
+    function showStatus(message, type) {
+        const statusEl = document.getElementById('statusMessage');
+        statusEl.textContent = message;
+        statusEl.className = `status ${type}`;
+
+        setTimeout(() => {
+            statusEl.className = 'status';
+        }, 3000);
+    }
+
+    function init() {
+        stage = new Konva.Stage({
+            container: 'container',
+            width: GRID_SIZE,
+            height: GRID_SIZE
+        });
+
+        gridLayer = new Konva.Layer();
+        layer = new Konva.Layer();
+
+        drawGrid();
+
+        stage.add(gridLayer);
+        stage.add(layer);
+
+        const panzoom = Panzoom(stage, {
+          maxScale: 5
+        })
+        panzoom.pan(10, 10)
+        panzoom.zoom(2, { animate: true })
+
+        setupEventListeners();
+        initializeFromBackend();
+    }
+
+    async function initializeFromBackend() {
+        const peopleData = await fetchPeople();
+
+        if (peopleData && peopleData.length > 0) {
+            createPeopleFromData(peopleData);
+        }
+
+        renderPersonList();
+        await loadChoreographyList();
+    }
+
+    function createPeopleFromData(peopleData) {
+        peopleData.forEach((personData, i) => {
+            const startX = personData.startX || (GRID_SPACING + (i % 5) * 150);
+            const startY = personData.startY || (GRID_SPACING + Math.floor(i / 5) * 150);
+
+            const circle = new Konva.Circle({
+                x: startX,
+                y: startY,
+                radius: PERSON_RADIUS,
+                fill: personData.color,
+                stroke: '#333',
+                strokeWidth: 2,
+                id: `person-${personData.id}`
+            });
+
+            const label = new Konva.Text({
+                x: startX - 6,
+                y: startY - 7,
+                text: personData.name.substring(0, 1),
+                fontSize: 14,
+                fontStyle: 'bold',
+                fill: 'white'
+            });
+
+            people.push({
+                id: personData.id,
+                name: personData.name,
+                color: personData.color,
+                circle,
+                label,
+                startX,
+                startY
+            });
+            routes[i] = [{x: startX, y: startY}];
+
+            layer.add(circle);
+            layer.add(label);
+        });
+    }
+
+    function drawGrid() {
+        for (let i = 0; i <= GRID_SIZE; i += GRID_SPACING) {
+            gridLayer.add(new Konva.Line({
+                points: [i, 0, i, GRID_SIZE],
+                stroke: i % (GRID_SPACING * 4) == 0 ? '#333' : '#ddd',
+                strokeWidth: 1
+            }));
+            gridLayer.add(new Konva.Line({
+                points: [0, i, GRID_SIZE, i],
+                stroke: i % (GRID_SPACING * 4) == 0 ? '#333' : '#ddd',
+                strokeWidth: 1
+            }));
+        }
+    }
+
+    function selectPerson(index) {
+        selectedPerson = index;
+        renderPersonList();
+        redrawRoutes();
+    }
+
+    function snapToGrid(val) {
+        return Math.round(val / GRID_SPACING) * GRID_SPACING;
+    }
+
+    function setupEventListeners() {
+        stage.on('click', (e) => {
+            if (mode !== 'design' || selectedPerson === null) return;
+
+            const pos = stage.getPointerPosition();
+            const snappedX = snapToGrid(pos.x);
+            const snappedY = snapToGrid(pos.y);
+
+            routes[selectedPerson].push({x: snappedX, y: snappedY});
+            redrawRoutes();
+        });
+
+        stage.on('mousemove', (e) => {
+            if (mode !== 'design' || selectedPerson === null) return;
+
+                const pos = stage.getPointerPosition();
+                const snappedX = snapToGrid(pos.x);
+                const snappedY = snapToGrid(pos.y);
+
+                redrawRoutes({x: snappedX, y: snappedY});
+        });
+
+        document.getElementById('toggleMode').addEventListener('click', toggleMode);
+        document.getElementById('clearAll').addEventListener('click', () => clearAllRoutes(true));
+        document.getElementById('resetPositions').addEventListener('click', resetPositions);
+        document.getElementById('playPause').addEventListener('click', togglePlayPause);
+        document.getElementById('stop').addEventListener('click', stopAnimation);
+        document.getElementById('saveChoreography').addEventListener('click', saveChoreography);
+        document.getElementById('deleteChoreography').addEventListener('click', deleteChoreography);
+        document.getElementById('addPerson').addEventListener('click', addPerson);
+
+        stage.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(`${tabName}Tab`).classList.add('active');
+            });
+        });
+
+        const speedSlider = document.getElementById('speed');
+        speedSlider.addEventListener('input', (e) => {
+            playbackSpeed = parseFloat(e.target.value);
+            document.getElementById('speedValue').textContent = playbackSpeed.toFixed(1) + 'x';
+        });
+    }
+
+    function redrawRoutes(snapped) {
+        layer.find('.route-line').forEach(line => line.destroy());
+        layer.find('.route-point').forEach(point => point.destroy());
+
+        if (selectedPerson === null) {
+            layer.batchDraw();
+            return;
+        }
+
+        const route = routes[selectedPerson];
+        if (route && route.length > 1) {
+            const points = route.flatMap(p => [p.x, p.y]);
+            const line = new Konva.Line({
+                points: points,
+                stroke: people[selectedPerson].color,
+                strokeWidth: 3,
+                opacity: 0.6,
+                name: 'route-line',
+                dash: [10, 5]
+            });
+            layer.add(line);
+            line.moveToBottom();
+            gridLayer.moveToBottom();
+
+            route.forEach((point, idx) => {
+                const circle = new Konva.Circle({
+                    x: point.x,
+                    y: point.y,
+                    radius: 5,
+                    fill: idx === 0 ? '#4CAF50' : people[selectedPerson].color,
+                    stroke: '#333',
+                    strokeWidth: 1,
+                    name: 'route-point'
+                });
+                layer.add(circle);
+            });
+        }
+
+        if (snapped) {
+            const circle = new Konva.Circle({
+                x: snapped.x,
+                y: snapped.y,
+                radius: 5,
+                fill: people[selectedPerson].color,
+                stroke: '#333',
+                strokeWidth: 1,
+                name: 'route-point'
+            });
+            layer.add(circle);
+        }
+
+        layer.batchDraw();
+    }
+
+    function toggleMode() {
+        mode = mode === 'design' ? 'playback' : 'design';
+        const btn = document.getElementById('toggleMode');
+        const info = document.getElementById('modeInfo');
+        const playbackControls = document.getElementById('playbackControls');
+
+        if (mode === 'playback') {
+            btn.textContent = 'Switch to Design Mode';
+            info.innerHTML = '<strong>Playback Mode:</strong> Use controls to play the choreography animation.';
+            playbackControls.style.display = 'block';
+            layer.find('.route-line').forEach(line => line.destroy());
+            layer.find('.route-point').forEach(point => point.destroy());
+            layer.batchDraw();
+        } else {
+            btn.textContent = 'Switch to Playback Mode';
+            info.innerHTML = '<strong>Design Mode:</strong> Select a person from the sidebar and click on the grid to create their route.';
+            playbackControls.style.display = 'none';
+            stopAnimation();
+            redrawRoutes();
+        }
+    }
+
+    function togglePlayPause() {
+        isPlaying = !isPlaying;
+        const btn = document.getElementById('playPause');
+        btn.textContent = isPlaying ? '⏸ Pause' : '▶ Play';
+
+        if (isPlaying) {
+            lastTime = performance.now();
+            animate();
+        } else {
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+        }
+    }
+
+    function stopAnimation() {
+        isPlaying = false;
+        animationTime = 0;
+        lastTime = null;
+        document.getElementById('playPause').textContent = '▶ Play';
+        document.getElementById('timeDisplay').textContent = '0.0s';
+        if (animationFrame) {
+            cancelAnimationFrame(animationFrame);
+        }
+        resetPositions();
+    }
+
+    function animate() {
+        if (!isPlaying) return;
+
+        const now = performance.now();
+        const deltaTime = (now - lastTime) / 1000;
+        lastTime = now;
+
+        animationTime += deltaTime * playbackSpeed;
+        document.getElementById('timeDisplay').textContent = animationTime.toFixed(1) + 's';
+
+        people.forEach((person, idx) => {
+            const route = routes[idx];
+            if (!route || route.length < 2) return;
+
+            const totalSegments = route.length - 1;
+            const currentSegment = Math.floor(animationTime) % totalSegments;
+            const progress = animationTime % 1;
+
+            const start = route[currentSegment];
+            const end = route[(currentSegment + 1) % route.length];
+
+            const x = start.x + (end.x - start.x) * progress;
+            const y = start.y + (end.y - start.y) * progress;
+
+            person.circle.x(x);
+            person.circle.y(y);
+            person.label.x(x - 6);
+            person.label.y(y - 7);
+        });
+
+        layer.batchDraw();
+        animationFrame = requestAnimationFrame(animate);
+    }
+
+    function resetPositions() {
+        people.forEach((person, idx) => {
+            const startPos = routes[idx] && routes[idx][0]
+                ? routes[idx][0]
+                : {x: person.startX, y: person.startY};
+            person.circle.x(startPos.x);
+            person.circle.y(startPos.y);
+            person.label.x(startPos.x - 6);
+            person.label.y(startPos.y - 7);
+        });
+        layer.batchDraw();
+    }
+
+    function clearAllRoutes(confirm_action) {
+        if (confirm_action && !confirm('Clear all routes? This cannot be undone.')) return;
+
+        people.forEach((person, idx) => {
+            routes[idx] = [{x: person.startX, y: person.startY}];
+        });
+        resetPositions();
+        redrawRoutes();
+    }
+
+    init();
+</script>
+</body>
+</html>
