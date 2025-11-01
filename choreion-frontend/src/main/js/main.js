@@ -1,6 +1,10 @@
 import { GRID_SIZE, GRID_SPACING, VERT_OFFSET, HORIZ_OFFSET, PERSON_RADIUS } from "./modules/constants.js";
 import * as Api from "./modules/api.js"
 
+let authToken = null;
+let currentUser = null;
+let userMappings = [];
+
 let stage, layer, gridLayer;
 let people = [];
 let routes = {};
@@ -13,6 +17,149 @@ let playbackSpeed = 1;
 let animationFrame = null;
 let currentChoreographyId = null;
 let choreographies = [];
+
+async function login(username, password) {
+    try {
+
+        const data = await Api.login(username, password);
+        authToken = data.token;
+        currentUser = data;
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        showApp();
+        return true;
+    } catch (error) {
+        console.error('Login error:', error);
+        return false;
+    }
+}
+
+async function register(username, email, fullName, password) {
+    try {
+
+        const data = await Api.register(username, email, fullName, password);
+        authToken = data.token;
+        currentUser = data;
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        showApp();
+        return true;
+    } catch (error) {
+        console.error('Registration error:', error);
+        return false;
+    }
+}
+
+function logout() {
+    authToken = null;
+    currentUser = null;
+    userMappings = [];
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+
+    people = [];
+    routes = {};
+    choreographies = [];
+    selectedPerson = null;
+    currentChoreographyId = null;
+
+    if (layer) {
+        layer.destroyChildren();
+        layer.draw();
+    }
+
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('appContainer').classList.add('hidden');
+}
+
+function showApp() {
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('appContainer').classList.remove('hidden');
+    document.getElementById('userFullName').textContent = currentUser.fullName || currentUser.username;
+    initializeApp();
+}
+
+function checkAuth() {
+    const savedToken = localStorage.getItem('authToken');
+    const savedUser = localStorage.getItem('currentUser');
+
+    if (savedToken && savedUser) {
+        authToken = savedToken;
+        currentUser = JSON.parse(savedUser);
+        showApp();
+    }
+}
+
+async function fetchUserMappings() {
+    try {
+
+        userMappings = await Api.fetchUserMappings();
+        renderUserMappings();
+    } catch (error) {
+        console.error('Error fetching mappings:', error);
+    }
+}
+
+async function createUserMapping(personId) {
+    try {
+        await Api.createUserMapping(personId, currentChoreographyId, userMappings.length);
+
+        await fetchUserMappings();
+        renderPersonList();
+        showStatus('Character mapped successfully!', 'success');
+    } catch (error) {
+        console.error('Error creating mapping:', error);
+        showStatus('Error mapping character', 'error');
+    }
+}
+
+async function deleteUserMapping(mappingId) {
+    try {
+        await APi.deleteUserMapping(mappingId);
+
+        await fetchUserMappings();
+        renderPersonList();
+        showStatus('Mapping removed successfully!', 'success');
+    } catch (error) {
+        console.error('Error deleting mapping:', error);
+        showStatus('Error removing mapping', 'error');
+    }
+}
+
+function renderUserMappings() {
+    const container = document.getElementById('userMappings');
+
+    if (userMappings.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div style="font-size: 12px;">No character mappings yet. Click "Map to Me" on a person to create one.</div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = '';
+    userMappings.forEach(mapping => {
+        const item = document.createElement('div');
+        item.className = 'person-item';
+
+        item.innerHTML = `
+            <div class="person-info">
+                <div class="person-color-box" style="background: ${mapping.personColor};"></div>
+                <div>
+                    <div class="person-name">${mapping.personName}</div>
+                    ${mapping.choreographyName ? `<div style="font-size: 11px; color: #7f8c8d;">${mapping.choreographyName}</div>` : ''}
+                </div>
+                ${mapping.isPrimary ? '<span class="user-mapping-badge">Primary</span>' : ''}
+            </div>
+            <button class="btn-danger btn-small" onclick="deleteUserMapping(${mapping.id})">✕</button>
+        `;
+
+        container.appendChild(item);
+    });
+}
 
 async function saveChoreography() {
     const name = document.getElementById('choreographyName').value.trim();
@@ -270,25 +417,6 @@ function showStatus(message, type) {
     }, 3000);
 }
 
-function init() {
-    stage = new Konva.Stage({
-        container: 'container',
-        width: GRID_SIZE,
-        height: GRID_SIZE
-    });
-
-    gridLayer = new Konva.Layer();
-    layer = new Konva.Layer();
-
-    drawGrid();
-
-    stage.add(gridLayer);
-    stage.add(layer);
-
-    setupEventListeners();
-    initializeFromBackend();
-}
-
 async function initializeFromBackend() {
     const peopleData = await Api.fetchPeople();
 
@@ -298,6 +426,7 @@ async function initializeFromBackend() {
 
     renderPersonList();
     await loadChoreographyList();
+    await fetchUserMappings();
 }
 
 function createPeopleFromData(peopleData) {
@@ -396,6 +525,7 @@ function setupEventListeners() {
     document.getElementById('saveChoreography').addEventListener('click', saveChoreography);
     document.getElementById('deleteChoreography').addEventListener('click', deleteChoreography);
     document.getElementById('addPerson').addEventListener('click', addPerson);
+    document.getElementById('logoutBtn').addEventListener('click', logout);
     document.getElementById('personList').addEventListener('click', (event) => {
         const clearBtn = event.target.closest('.clear-route-btn');
         const removeBtn = event.target.closest('.remove-person-btn');
@@ -655,4 +785,75 @@ function clearAllRoutes(confirm_action) {
     redrawRoutes();
 }
 
-init();
+function initializeApp() {
+    if (!authToken) {
+        console.log('No auth token, skipping initialization');
+        return;
+    }
+
+    if (!stage) {
+        // Only initialize Konva stage if not already done
+        stage = new Konva.Stage({
+            container: 'container',
+            width: GRID_SIZE,
+            height: GRID_SIZE
+        });
+
+        gridLayer = new Konva.Layer();
+        layer = new Konva.Layer();
+
+        drawGrid();
+
+        stage.add(gridLayer);
+        stage.add(layer);
+
+        setupEventListeners();
+    }
+
+    initializeFromBackend();
+}
+
+// Login/Register Event Handlers
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if already logged in
+    checkAuth();
+
+    // Login tab switching
+    document.querySelectorAll('.login-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.dataset.loginTab;
+            document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.login-form-content').forEach(c => c.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(`${tabName}FormContent`).classList.add('active');
+        });
+    });
+
+    // Login form
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('loginUsername').value;
+        const password = document.getElementById('loginPassword').value;
+
+        const success = await login(username, password);
+        if (!success) {
+            document.getElementById('loginError').textContent = 'Invalid username or password';
+            document.getElementById('loginError').style.display = 'block';
+        }
+    });
+
+    // Register form
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('registerUsername').value;
+        const email = document.getElementById('registerEmail').value;
+        const fullName = document.getElementById('registerFullName').value;
+        const password = document.getElementById('registerPassword').value;
+
+        const success = await register(username, email, fullName, password);
+        if (!success) {
+            document.getElementById('registerError').textContent = 'Registration failed. Username or email may already exist.';
+            document.getElementById('registerError').style.display = 'block';
+        }
+    });
+});
