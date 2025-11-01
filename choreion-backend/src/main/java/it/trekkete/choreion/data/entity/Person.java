@@ -16,9 +16,5 @@ public class Person {
 
     private String color;
 
-    @Column(name = "start_x")
-    private Integer startX;
-
-    @Column(name = "start_y")
-    private Integer startY;
+    private String letter;
 }

@@ -29,8 +29,7 @@ public class PersonService {
         Person person = getPersonById(id);
         person.setName(personDetails.getName());
         person.setColor(personDetails.getColor());
-        person.setStartX(personDetails.getStartX());
-        person.setStartY(personDetails.getStartY());
+        person.setLetter(personDetails.getLetter());
         return personRepository.save(person);
     }
 

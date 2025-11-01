@@ -4,7 +4,7 @@ spring:
     name: choreography-backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/choreion
+    url: jdbc:postgresql://localhost:32768/choreion
     username: postgres
     password: trekkete
     driver-class-name: org.postgresql.Driver
