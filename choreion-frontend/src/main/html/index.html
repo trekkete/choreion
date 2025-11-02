@@ -26,54 +26,67 @@
 
 <div id="loginScreen" class="login-container hidden">
     <div class="login-box">
+        <div>
+            <select id="loginLanguageSelector" class="language-selector general-pages-selector">
+                <option value="en">🇬🇧</option>
+                <option value="it">🇮🇹</option>
+            </select>
+        </div>
         <div class="login-header">
-            <h1>🎭 Choreography Tool</h1>
-            <p>Sign in to create and manage choreographies</p>
+            <h1>🎭 <span data-i18n="login.title">Choreography Tool</span></h1>
+            <p data-i18n="login.subtitle">Sign in to create and manage choreographies</p>
         </div>
 
         <!-- Login Form -->
         <form id="loginForm">
             <div class="form-group">
-                <label>Username</label>
-                <input type="text" id="loginUsername" required>
+                <label data-i18n="login.username">Username</label>
+                <input type="text" id="loginUsername" data-i18n-placeholder="login.username" required>
             </div>
             <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="loginPassword" required>
+                <label data-i18n="login.password">Password</label>
+                <input type="password" id="loginPassword" data-i18n-placeholder="login.password" required>
             </div>
             <div id="loginError" class="status error" style="display:none;"></div>
-            <button type="submit" class="btn-success" style="width: 100%;">Login</button>
+            <button type="submit" class="btn-success" style="width: 100%;" data-i18n="login.button">Login</button>
         </form>
     </div>
 </div>
 
 <div id="projectSelectionScreen" class="login-container hidden">
     <div class="login-box" style="max-width: 600px;">
+        <div class="general-pages-selector" style="display: flex; gap: 10px;">
+            <button id="projectAdminBtn" class="hidden" data-i18n="header.admin">Admin</button>
+            <select id="projectLanguageSelector" class="language-selector">
+                <option value="en">🇬🇧</option>
+                <option value="it">🇮🇹</option>
+            </select>
+        </div>
         <div class="login-header">
-            <h1>📁 Select a Project</h1>
-            <p>Choose a project to work on or create a new one</p>
+            <h1>📁 <span data-i18n="project.select.title">Select a Project</span></h1>
+            <p data-i18n="project.select.subtitle">Choose a project to work on or create a new one</p>
         </div>
 
         <div class="form-group">
-            <input type="text" id="newProjectName" placeholder="New project name...">
+            <input type="text" id="newProjectName" data-i18n-placeholder="project.new.name" placeholder="New project name...">
         </div>
         <div class="form-group">
-            <input type="text" id="newProjectDescription" placeholder="Description (optional)...">
+            <input type="text" id="newProjectDescription" data-i18n-placeholder="project.new.description" placeholder="Description (optional)...">
         </div>
-        <button class="btn-success" id="createProjectBtn" style="width: 100%; margin-bottom: 20px;">➕ Create New Project</button>
+        <button class="btn-success" id="createProjectBtn" style="width: 100%; margin-bottom: 20px;" data-i18n="project.create">➕ Create New Project</button>
 
         <div id="projectError" class="status error" style="display:none;"></div>
 
-        <div class="section-title">Your Projects</div>
+        <div class="section-title" data-i18n="project.list.title">Your Projects</div>
         <div id="projectList" class="choreography-list">
             <div class="empty-state">
                 <div class="empty-state-icon">📁</div>
-                <div>No projects yet</div>
-                <div style="font-size: 12px;">Create your first project to get started</div>
+                <div data-i18n="project.list.empty">No projects yet</div>
+                <div style="font-size: 12px;" data-i18n="project.list.empty.hint">Create your first project to get started</div>
             </div>
         </div>
 
-        <button class="btn-logout" id="logoutFromProjectsBtn" style="width: 100%; margin-top: 20px;">Logout</button>
+        <button class="btn-logout" id="logoutFromProjectsBtn" style="width: 100%; margin-top: 20px;" data-i18n="header.logout">Logout</button>
     </div>
 </div>
 <div id="appContainer" class="app-container">
@@ -82,15 +95,18 @@
             <h1>Choreion</h1>
             <div class="header-project-info">
                 <span id="currentProjectName" class="project-title"></span>
-                <button id="switchProjectBtn" class="btn-small">📁 Switch</button>
+                <button id="switchProjectBtn" class="btn-small" data-i18n="project.switch">📁 Switch</button>
             </div>
         </div>
         <div class="header-controls">
-            <button id="toggleMode">Switch to Playback Mode</button>
-            <button id="adminBtn" class="hidden">👤 Admin</button>
+            <select id="languageSelector" class="language-selector" style="margin-right: 10px;">
+                <option value="en">🇬🇧</option>
+                <option value="it">🇮🇹</option>
+            </select>
+            <button id="adminBtn" class="hidden" data-i18n="header.admin">Admin</button>
             <div class="header-user-info">
-                <span class="user-greeting">Welcome, <strong id="userFullName"></strong></span>
-                <button class="btn-logout" id="logoutBtn">Logout</button>
+                <span class="user-greeting"><strong id="userFullName"></strong></span>
+                <button class="btn-logout" id="logoutBtn" data-i18n="header.logout">Logout</button>
             </div>
         </div>
     </div>
@@ -99,36 +115,42 @@
         <div class="canvas-section">
             <div class="canvas-controls">
                 <div class="mode-info" id="modeInfo">
-                    <strong>Design Mode:</strong> Select a person from the sidebar and click on the grid to create their route.
+                    <strong data-i18n="mode.design">Design Mode:</strong> <span data-i18n="mode.design.info">Select a person from the sidebar and click on the grid to create their route.</span>
+                </div>
+
+                <div class="playback-controls" style="margin-bottom: 10px;">
+                    <div class="control-group">
+                        <button id="toggleMode" data-i18n="button.switch.playback">Switch to Playback Mode</button>
+                    </div>
                 </div>
 
                 <div id="designControls" class="playback-controls">
                     <div class="control-group">
-                        <button id="toggleSnapping">🧲 Snap to Grid: ON</button>
+                        <button id="toggleSnapping">🧲 <span data-i18n="controls.snapToGrid.on">Snap to Grid: ON</span></button>
                     </div>
                     <div class="control-group">
-                        <button id="deleteLastStep">⬅️ Delete Last Step</button>
+                        <button id="deleteLastStep">⬅️ <span data-i18n="controls.deleteLastStep">Delete Last Step</span></button>
                     </div>
                     <div class="control-group">
-                        <button class="btn-danger" id="clearAll">Clear Routes</button>
+                        <button class="btn-danger" id="clearAll" data-i18n="controls.clearRoutes">Clear Routes</button>
                     </div>
                 </div>
 
                 <div id="playbackControls" class="hidden">
                     <div class="playback-controls">
                         <div class="control-group">
-                            <button id="playPause">▶ Play</button>
-                            <button id="stop">⏹ Stop</button>
+                            <button id="playPause">▶ <span data-i18n="controls.play">Play</span></button>
+                            <button id="stop">⏹ <span data-i18n="controls.stop">Stop</span></button>
                         </div>
                         <div class="control-group">
-                            <button id="resetPositions">Reset Positions</button>
+                            <button id="resetPositions" data-i18n="controls.resetPositions">Reset Positions</button>
                         </div>
                         <div class="control-group">
-                            <label>BPM:</label>
+                            <label data-i18n="controls.bpm">BPM:</label>
                             <input type="number" id="bpm" min="30" max="300" value="165" style="width: 100px;">
                         </div>
                         <div class="control-group">
-                            <label>Time:</label>
+                            <label data-i18n="controls.time">Time:</label>
                             <span id="timeDisplay">0.0s</span>
                         </div>
                     </div>
@@ -142,63 +164,60 @@
 
         <div class="sidebar">
             <div class="tabs">
-                <button class="tab active" data-tab="choreographies">Choreographies</button>
-                <button class="tab" data-tab="people">People</button>
+                <button class="tab active" data-tab="choreographies" data-i18n="choreography.title">Choreographies</button>
+                <button class="tab" data-tab="people" data-i18n="people.title">People</button>
             </div>
 
             <div id="choreographiesTab" class="tab-content active">
-                <div class="section-title">Choreographies</div>
+                <div class="section-title" data-i18n="choreography.title">Choreographies</div>
 
                 <div class="form-group">
-                    <input type="text" id="choreographyName" placeholder="Choreography name...">
+                    <input type="text" id="choreographyName" data-i18n-placeholder="choreography.name" placeholder="Choreography name...">
                 </div>
 
                 <div class="form-group">
-                    <label>Number of Steps:</label>
-                    <input type="number" id="choreographySteps" placeholder="Number of steps" min="1" value="8">
+                    <label data-i18n="choreography.steps">Number of Steps:</label>
+                    <input type="number" id="choreographySteps" data-i18n-placeholder="choreography.steps.placeholder" placeholder="Number of steps" min="1" value="8">
                 </div>
 
                 <div class="form-row">
-                    <button class="btn-success" id="saveChoreography" style="flex: 1;">💾 Save</button>
-                    <button class="btn-danger btn-small" id="deleteChoreography">🗑️</button>
+                    <button class="btn-success" id="saveChoreography" style="flex: 1;">💾 <span data-i18n="choreography.save">Save</span></button>
+                    <button class="btn-danger btn-small" id="deleteChoreography">🗑️ <span data-i18n="choreography.delete">Delete</span></button>
                 </div>
 
                 <div id="statusMessage" class="status"></div>
 
-                <div class="section-title" style="margin-top: 20px;">Saved Choreographies</div>
+                <div class="section-title" style="margin-top: 20px;" data-i18n="choreography.list.title">Saved Choreographies</div>
                 <div id="choreographyList" class="choreography-list">
                     <div class="empty-state">
                         <div class="empty-state-icon">🎭</div>
-                        <div>No choreographies yet</div>
-                        <div style="font-size: 12px;">Create one by designing routes and clicking Save</div>
+                        <div data-i18n="choreography.list.empty">No choreographies yet</div>
+                        <div style="font-size: 12px;" data-i18n="choreography.list.empty.hint">Create one by designing routes and clicking Save</div>
                     </div>
                 </div>
             </div>
 
             <div id="peopleTab" class="tab-content">
-                <div class="section-title">Add New Person</div>
+                <div class="section-title" data-i18n="people.add.title">Add New Person</div>
 
                 <div class="add-person-form">
                     <div class="form-group">
-                        <label>Name:</label>
-                        <input type="text" id="newPersonName" placeholder="Person name...">
+                        <label data-i18n="people.add.name">Name:</label>
+                        <input type="text" id="newPersonName" data-i18n-placeholder="people.add.name.placeholder" placeholder="Person name...">
                     </div>
                     <div class="form-group">
-                        <label>Letter:</label>
-                        <input type="text" id="newPersonLetter" placeholder="Person letter...">
+                        <label data-i18n="people.add.letter">Letter:</label>
+                        <input type="text" id="newPersonLetter" data-i18n-placeholder="people.add.letter.placeholder" placeholder="Person letter...">
                     </div>
                     <div class="form-group">
-                        <label>Color:</label>
+                        <label data-i18n="people.add.color">Color:</label>
                         <input type="color" id="newPersonColor" value="#3498db">
                     </div>
-                    <button class="btn-success" id="addPerson" style="width: 100%;">➕ Add Person</button>
+                    <button class="btn-success" id="addPerson" style="width: 100%;">➕ <span data-i18n="people.add.button">Add Person</span></button>
                 </div>
 
-                <div class="section-title">People (Click to design route)</div>
+                <div class="section-title" data-i18n="people.list.title">People (Click to design route)</div>
                 <div id="personList" class="person-list"></div>
-
-                <div class="section-title" style="margin-top: 20px;">My Character Mappings</div>
-                <div id="userMappings" class="person-list"></div>
             </div>
         </div>
     </div>
@@ -207,104 +226,104 @@
 <div id="adminContainer" class="app-container hidden">
     <div class="header">
         <div class="header-left">
-            <h1>Choreion Admin</h1>
+            <h1 data-i18n="admin.title">Choreion Admin</h1>
         </div>
         <div class="header-controls">
-            <button id="backToAppBtn">← Back to App</button>
+            <button id="backToAppBtn" data-i18n="admin.backToApp">← Back to App</button>
             <div class="header-user-info">
-                <span class="user-greeting">Welcome, <strong id="adminUserFullName"></strong></span>
-                <button class="btn-logout" id="adminLogoutBtn">Logout</button>
+                <span class="user-greeting"><span data-i18n="header.welcome">Welcome</span>, <strong id="adminUserFullName"></strong></span>
+                <button class="btn-logout" id="adminLogoutBtn" data-i18n="header.logout">Logout</button>
             </div>
         </div>
     </div>
 
     <div class="main-content">
         <div class="admin-section">
-            <div class="section-title">User Management</div>
+            <div class="section-title" data-i18n="admin.users.title">User Management</div>
 
             <div class="admin-form">
-                <h3>Create New User</h3>
+                <h3 data-i18n="admin.users.create.title">Create New User</h3>
                 <div class="form-row">
                     <div class="form-group" style="flex: 1;">
-                        <label>Username</label>
-                        <input type="text" id="adminNewUsername" placeholder="Username">
+                        <label data-i18n="admin.users.create.username">Username</label>
+                        <input type="text" id="adminNewUsername" data-i18n-placeholder="admin.users.create.username" placeholder="Username">
                     </div>
                     <div class="form-group" style="flex: 1;">
-                        <label>Email</label>
-                        <input type="email" id="adminNewEmail" placeholder="Email">
+                        <label data-i18n="admin.users.create.email">Email</label>
+                        <input type="email" id="adminNewEmail" data-i18n-placeholder="admin.users.create.email" placeholder="Email">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group" style="flex: 1;">
-                        <label>Full Name</label>
-                        <input type="text" id="adminNewFullName" placeholder="Full Name">
+                        <label data-i18n="admin.users.create.fullName">Full Name</label>
+                        <input type="text" id="adminNewFullName" data-i18n-placeholder="admin.users.create.fullName" placeholder="Full Name">
                     </div>
                     <div class="form-group" style="flex: 1;">
-                        <label>Password</label>
-                        <input type="password" id="adminNewPassword" placeholder="Password">
+                        <label data-i18n="admin.users.create.password">Password</label>
+                        <input type="password" id="adminNewPassword" data-i18n-placeholder="admin.users.create.password" placeholder="Password">
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Role</label>
+                    <label data-i18n="admin.users.create.role">Role</label>
                     <select id="adminNewRole">
-                        <option value="ROLE_USER">User</option>
-                        <option value="ROLE_CHOREOGRAPHER">Choreographer</option>
-                        <option value="ROLE_ADMIN">Admin</option>
+                        <option value="ROLE_USER" data-i18n="admin.role.user">User</option>
+                        <option value="ROLE_CHOREOGRAPHER" data-i18n="admin.role.choreographer">Choreographer</option>
+                        <option value="ROLE_ADMIN" data-i18n="admin.role.admin">Admin</option>
                     </select>
                 </div>
-                <button class="btn-success" id="createUserBtn">➕ Create User</button>
+                <button class="btn-success" id="createUserBtn">➕ <span data-i18n="admin.users.create.button">Create User</span></button>
                 <div id="adminCreateStatus" class="status"></div>
             </div>
 
             <div class="admin-users-list">
-                <h3>All Users</h3>
+                <h3 data-i18n="admin.users.list.title">All Users</h3>
                 <div id="adminUsersList"></div>
             </div>
 
-            <div class="section-title" style="margin-top: 30px;">User-Person Mappings</div>
+            <div class="section-title" style="margin-top: 30px;" data-i18n="admin.mappings.title">User-Person Mappings</div>
 
             <div class="admin-form">
-                <h3>Create User Mapping</h3>
+                <h3 data-i18n="admin.mappings.create.title">Create User Mapping</h3>
                 <div class="form-row">
                     <div class="form-group" style="flex: 1;">
-                        <label>User</label>
+                        <label data-i18n="admin.mappings.user">User</label>
                         <select id="adminMappingUserId">
-                            <option value="">Select a user...</option>
+                            <option value="" data-i18n="admin.mappings.user.select">Select a user...</option>
                         </select>
                     </div>
                     <div class="form-group" style="flex: 1;">
-                        <label>Project</label>
+                        <label data-i18n="admin.mappings.project">Project</label>
                         <select id="adminMappingProjectId">
-                            <option value="">Select a project...</option>
+                            <option value="" data-i18n="admin.mappings.project.select">Select a project...</option>
                         </select>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group" style="flex: 1;">
-                        <label>Choreography</label>
+                        <label data-i18n="admin.mappings.choreography">Choreography</label>
                         <select id="adminMappingChoreographyId">
-                            <option value="">Select a choreography...</option>
+                            <option value="" data-i18n="admin.mappings.choreography.select">Select a choreography...</option>
                         </select>
                     </div>
                     <div class="form-group" style="flex: 1;">
-                        <label>Person</label>
+                        <label data-i18n="admin.mappings.person">Person</label>
                         <select id="adminMappingPersonId">
-                            <option value="">Select a person...</option>
+                            <option value="" data-i18n="admin.mappings.person.select">Select a person...</option>
                         </select>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>
                         <input type="checkbox" id="adminMappingIsPrimary">
-                        Set as Primary Mapping
+                        <span data-i18n="admin.mappings.primary">Set as Primary Mapping</span>
                     </label>
                 </div>
-                <button class="btn-success" id="createMappingBtn">➕ Create Mapping</button>
+                <button class="btn-success" id="createMappingBtn">➕ <span data-i18n="admin.mappings.create.button">Create Mapping</span></button>
                 <div id="adminMappingStatus" class="status"></div>
             </div>
 
             <div class="admin-users-list">
-                <h3>All Mappings</h3>
+                <h3 data-i18n="admin.mappings.list.title">All Mappings</h3>
                 <div id="adminMappingsList"></div>
             </div>
         </div>

@@ -237,6 +237,13 @@ body {
     gap: 10px;
 }
 
+.header-user-info {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    margin-left: 10px;
+}
+
 .project-title {
     font-size: 16px;
     color: #ecf0f1;
@@ -678,4 +685,20 @@ select {
 select:focus {
     outline: none;
     border-color: #3498db;
+}
+
+.language-selector {
+    background: none;
+    border: none;
+    width: unset;
+    color: white;
+    font-size: 24px;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.general-pages-selector {
+    position: absolute;
+    right: 15px;
+    top: 15px;
 }
