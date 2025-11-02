@@ -2,7 +2,6 @@ package it.trekkete.choreion.controller;
 
 import it.trekkete.choreion.data.dto.AuthResponse;
 import it.trekkete.choreion.data.dto.LoginRequest;
-import it.trekkete.choreion.data.dto.RegisterRequest;
 import it.trekkete.choreion.data.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,19 +21,6 @@ public class AuthController {
             AuthResponse response = authService.login(loginRequest);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest registerRequest) {
-        try {
-
-            System.out.println(registerRequest);
-
-            AuthResponse response = authService.register(registerRequest);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
     }

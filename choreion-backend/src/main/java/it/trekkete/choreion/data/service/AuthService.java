@@ -51,22 +51,22 @@ public class AuthService {
         User user = userRepository.findByUsername(loginRequest.getUsername())
                                   .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return new AuthResponse(jwt, user.getId(), user.getUsername(), user.getFullName());
+        java.util.List<String> roles = user.getRoles().stream()
+                .map(role -> role.getName().name())
+                .collect(java.util.stream.Collectors.toList());
+
+        return new AuthResponse(jwt, user.getId(), user.getUsername(), user.getFullName(), roles);
     }
 
 
     @Transactional
     public AuthResponse register(RegisterRequest registerRequest) {
 
-        System.out.println("calling register");
-
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
-            System.out.println("Username already exists");
             throw new RuntimeException("Username already exists");
         }
 
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
-            System.out.println("Email already exists");
             throw new RuntimeException("Email already exists");
         }
 
@@ -76,20 +76,12 @@ public class AuthService {
         user.setFullName(registerRequest.getFullName());
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
 
-        System.out.println(user);
-
         Role userRole = roleRepository.findByName(Role.RoleType.ROLE_USER)
                                       .orElseThrow(() -> new RuntimeException("User Role not set"));
-
-        System.out.println(userRole);
 
         Set<Role> roles = new HashSet<>();
         roles.add(userRole);
         user.setRoles(roles);
-
-        System.out.println(roles);
-
-        System.out.println("i'm here");
 
         User savedUser = userRepository.save(user);
 
@@ -102,6 +94,10 @@ public class AuthService {
 
         String jwt = tokenProvider.generateToken(authentication);
 
-        return new AuthResponse(jwt, savedUser.getId(), savedUser.getUsername(), savedUser.getFullName());
+        java.util.List<String> rolesList = savedUser.getRoles().stream()
+                .map(role -> role.getName().name())
+                .collect(java.util.stream.Collectors.toList());
+
+        return new AuthResponse(jwt, savedUser.getId(), savedUser.getUsername(), savedUser.getFullName(), rolesList);
     }
 }

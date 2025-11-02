@@ -15,6 +15,132 @@ body {
     flex-direction: column;
 }
 
+/* Loading Screen Styles */
+.loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: fadeOut 0.5s ease-in-out 1.5s forwards;
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+.loading-content {
+    text-align: center;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.loading-logo {
+    margin-bottom: 30px;
+    animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+.logo-placeholder {
+    font-size: 100px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+.loading-title {
+    color: white;
+    font-size: 48px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    letter-spacing: 4px;
+    animation: slideIn 0.8s ease-in-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.spinner-circle {
+    width: 15px;
+    height: 15px;
+    background: white;
+    border-radius: 50%;
+    animation: wave 1.2s ease-in-out infinite;
+}
+
+.spinner-circle:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.spinner-circle:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.spinner-circle:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes wave {
+    0%, 60%, 100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+    30% {
+        transform: scale(1.3);
+        opacity: 1;
+    }
+}
+
 /* Login Screen Styles */
 .login-container {
     display: flex;
@@ -89,11 +215,32 @@ body {
     color: white;
     padding: 15px 20px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
 }
 
 .header h1 {
     font-size: 24px;
-    margin-bottom: 10px;
+    margin: 0;
+}
+
+.header-project-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.project-title {
+    font-size: 16px;
+    color: #ecf0f1;
+    font-weight: 500;
 }
 
 .header-controls {
@@ -207,6 +354,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    max-height: 400px;
+    overflow-y: scroll;
 }
 
 .choreography-item, .person-item {
@@ -216,6 +365,7 @@ body {
     cursor: pointer;
     transition: all 0.3s;
     border: 2px solid transparent;
+    margin-right: 5px;
 }
 
 .choreography-item:hover, .person-item:hover {
@@ -241,6 +391,12 @@ body {
 }
 
 .choreography-date {
+    font-size: 12px;
+    color: #7f8c8d;
+    margin-top: 4px;
+}
+
+.choreography-steps {
     font-size: 12px;
     color: #7f8c8d;
     margin-top: 4px;
@@ -332,7 +488,7 @@ button:disabled {
     font-size: 12px;
 }
 
-input[type="text"], input[type="color"] {
+input {
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -410,4 +566,116 @@ input[type="range"] {
     padding: 15px;
     border-radius: 6px;
     margin-bottom: 20px;
+}
+
+/* Admin Styles */
+.admin-section {
+    width: 100%;
+    padding: 20px;
+    background: #ecf0f1;
+    overflow-y: auto;
+}
+
+.admin-form {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.admin-form h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-size: 20px;
+}
+
+.admin-users-list {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.admin-users-list h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-size: 20px;
+}
+
+.admin-user-card {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+}
+
+.admin-user-card:hover {
+    border-color: #3498db;
+    background: #e9ecef;
+}
+
+.admin-user-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.admin-user-name {
+    font-weight: bold;
+    font-size: 16px;
+    color: #2c3e50;
+}
+
+.admin-user-info {
+    font-size: 14px;
+    color: #7f8c8d;
+    margin-bottom: 5px;
+}
+
+.admin-user-role {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+.role-user {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.role-choreographer {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.role-admin {
+    background: #fce4ec;
+    color: #c2185b;
+}
+
+.admin-user-actions {
+    display: flex;
+    gap: 10px;
+}
+
+select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    background: white;
+    cursor: pointer;
+}
+
+select:focus {
+    outline: none;
+    border-color: #3498db;
 }

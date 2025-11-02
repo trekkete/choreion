@@ -5,6 +5,7 @@ import it.trekkete.choreion.data.dto.ChoreographySummaryDTO;
 import it.trekkete.choreion.data.service.ChoreographyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -17,31 +18,43 @@ public class ChoreographyController {
     private ChoreographyService choreographyService;
 
     @GetMapping
-    public ResponseEntity<List<ChoreographySummaryDTO>> getAllChoreographies() {
-        return ResponseEntity.ok(choreographyService.getAllChoreographies());
+    @PreAuthorize("hasAnyRole('USER', 'CHOREOGRAPHER', 'ADMIN')")
+    public ResponseEntity<List<ChoreographySummaryDTO>> getAllChoreographies(
+            @RequestParam Long projectId) {
+        return ResponseEntity.ok(choreographyService.getAllChoreographies(projectId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ChoreographyDTO> getChoreographyById(@PathVariable Long id) {
-        return ResponseEntity.ok(choreographyService.getChoreographyById(id));
+    @PreAuthorize("hasAnyRole('USER', 'CHOREOGRAPHER', 'ADMIN')")
+    public ResponseEntity<ChoreographyDTO> getChoreographyById(
+            @PathVariable Long id,
+            @RequestParam Long projectId) {
+        return ResponseEntity.ok(choreographyService.getChoreographyById(id, projectId));
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('CHOREOGRAPHER', 'ADMIN')")
     public ResponseEntity<ChoreographyDTO> createChoreography(
-            @RequestBody ChoreographyDTO choreographyDTO) {
-        return ResponseEntity.ok(choreographyService.createChoreography(choreographyDTO));
+            @RequestBody ChoreographyDTO choreographyDTO,
+            @RequestParam Long projectId) {
+        return ResponseEntity.ok(choreographyService.createChoreography(choreographyDTO, projectId));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('CHOREOGRAPHER', 'ADMIN')")
     public ResponseEntity<ChoreographyDTO> updateChoreography(
             @PathVariable Long id,
-            @RequestBody ChoreographyDTO choreographyDTO) {
-        return ResponseEntity.ok(choreographyService.updateChoreography(id, choreographyDTO));
+            @RequestBody ChoreographyDTO choreographyDTO,
+            @RequestParam Long projectId) {
+        return ResponseEntity.ok(choreographyService.updateChoreography(id, choreographyDTO, projectId));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteChoreography(@PathVariable Long id) {
-        choreographyService.deleteChoreography(id);
+    @PreAuthorize("hasAnyRole('CHOREOGRAPHER', 'ADMIN')")
+    public ResponseEntity<Void> deleteChoreography(
+            @PathVariable Long id,
+            @RequestParam Long projectId) {
+        choreographyService.deleteChoreography(id, projectId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,9 +1,10 @@
 package it.trekkete.choreion.controller;
 
-import it.trekkete.choreion.data.entity.Person;
+import it.trekkete.choreion.data.dto.PersonDTO;
 import it.trekkete.choreion.data.service.PersonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -16,30 +17,42 @@ public class PersonController {
     private PersonService personService;
 
     @GetMapping
-    public ResponseEntity<List<Person>> getAllPeople() {
-        return ResponseEntity.ok(personService.getAllPeople());
+    @PreAuthorize("hasAnyRole('USER', 'CHOREOGRAPHER', 'ADMIN')")
+    public ResponseEntity<List<PersonDTO>> getAllPeople(@RequestParam Long projectId) {
+        return ResponseEntity.ok(personService.getAllPeople(projectId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Person> getPersonById(@PathVariable Long id) {
-        return ResponseEntity.ok(personService.getPersonById(id));
+    @PreAuthorize("hasAnyRole('USER', 'CHOREOGRAPHER', 'ADMIN')")
+    public ResponseEntity<PersonDTO> getPersonById(
+            @PathVariable Long id,
+            @RequestParam Long projectId) {
+        return ResponseEntity.ok(personService.getPersonById(id, projectId));
     }
 
     @PostMapping
-    public ResponseEntity<Person> createPerson(@RequestBody Person person) {
-        return ResponseEntity.ok(personService.createPerson(person));
+    @PreAuthorize("hasAnyRole('CHOREOGRAPHER', 'ADMIN')")
+    public ResponseEntity<PersonDTO> createPerson(
+            @RequestBody PersonDTO personDTO,
+            @RequestParam Long projectId) {
+        return ResponseEntity.ok(personService.createPerson(personDTO, projectId));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Person> updatePerson(
+    @PreAuthorize("hasAnyRole('CHOREOGRAPHER', 'ADMIN')")
+    public ResponseEntity<PersonDTO> updatePerson(
             @PathVariable Long id,
-            @RequestBody Person person) {
-        return ResponseEntity.ok(personService.updatePerson(id, person));
+            @RequestBody PersonDTO personDTO,
+            @RequestParam Long projectId) {
+        return ResponseEntity.ok(personService.updatePerson(id, personDTO, projectId));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePerson(@PathVariable Long id) {
-        personService.deletePerson(id);
+    @PreAuthorize("hasAnyRole('CHOREOGRAPHER', 'ADMIN')")
+    public ResponseEntity<Void> deletePerson(
+            @PathVariable Long id,
+            @RequestParam Long projectId) {
+        personService.deletePerson(id, projectId);
         return ResponseEntity.noContent().build();
     }
 }

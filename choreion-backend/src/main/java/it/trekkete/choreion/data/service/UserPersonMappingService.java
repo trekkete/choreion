@@ -36,6 +36,12 @@ public class UserPersonMappingService {
                                 .collect(Collectors.toList());
     }
 
+    public List<PersonMappingDTO> getAllMappings() {
+        return mappingRepository.findAll().stream()
+                                .map(this::toDTO)
+                                .collect(Collectors.toList());
+    }
+
     @Transactional
     public PersonMappingDTO createMapping(Long userId, Long personId, Long choreographyId, Boolean isPrimary) {
         User user = userRepository.findById(userId)
@@ -75,6 +81,9 @@ public class UserPersonMappingService {
     private PersonMappingDTO toDTO(UserPersonMapping mapping) {
         PersonMappingDTO dto = new PersonMappingDTO();
         dto.setId(mapping.getId());
+        dto.setUserId(mapping.getUser().getId());
+        dto.setUsername(mapping.getUser().getUsername());
+        dto.setUserFullName(mapping.getUser().getFullName());
         dto.setPersonId(mapping.getPerson().getId());
         dto.setPersonName(mapping.getPerson().getName());
         dto.setPersonColor(mapping.getPerson().getColor());

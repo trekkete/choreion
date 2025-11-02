@@ -14,8 +14,15 @@ public class Choreography {
     @Column(nullable = false)
     private String name;
 
+    @Column
+    private Integer steps;
+
     @Column(columnDefinition = "TEXT")
     private String routesJson;  // Stores routes as JSON
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
     @Column(name = "created_at")
     private java.time.LocalDateTime createdAt;

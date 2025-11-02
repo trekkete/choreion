@@ -4,19 +4,437 @@ import * as Api from "./modules/api.js"
 let authToken = null;
 let currentUser = null;
 let userMappings = [];
+let currentProjectId = null;
+let projects = [];
+let hasUnsavedChanges = false;
 
 let stage, layer, gridLayer;
 let people = [];
 let routes = {};
 let mode = 'design';
 let selectedPerson = null;
+let stepCounterText = null;
 let isPlaying = false;
 let animationTime = 0;
 let lastTime = null;
-let playbackSpeed = 1;
 let animationFrame = null;
 let currentChoreographyId = null;
+let currentChoreographySteps = 8;
 let choreographies = [];
+let currentBPM = 165;
+let snapToGridEnabled = true;
+
+// Helper functions for role checking
+function hasRole(role) {
+    return currentUser && currentUser.roles && currentUser.roles.includes(role);
+}
+
+function isUser() {
+    return hasRole('ROLE_USER');
+}
+
+function isChoreographer() {
+    return hasRole('ROLE_CHOREOGRAPHER');
+}
+
+function isAdmin() {
+    return hasRole('ROLE_ADMIN');
+}
+
+function canDesign() {
+    return isChoreographer() || isAdmin();
+}
+
+function applyRoleBasedUI() {
+    // Hide/show project creation for USER role
+    const createProjectSection = document.querySelector('#projectSelectionScreen .form-group');
+    const createProjectBtn = document.getElementById('createProjectBtn');
+    if (createProjectSection && createProjectBtn) {
+        if (!canDesign()) {
+            createProjectSection.classList.add('hidden');
+            createProjectBtn.classList.add('hidden');
+        } else {
+            createProjectSection.classList.remove('hidden');
+            createProjectBtn.classList.remove('hidden');
+        }
+    }
+
+    // Hide/show toggle mode button for USER role
+    const toggleModeBtn = document.getElementById('toggleMode');
+    if (toggleModeBtn) {
+        if (!canDesign()) {
+            toggleModeBtn.classList.add('hidden');
+            // Force USER to playback mode
+            if (mode === 'design') {
+                mode = 'playback';
+                const info = document.getElementById('modeInfo');
+                const playbackControls = document.getElementById('playbackControls');
+                const designControls = document.getElementById('designControls');
+                info.innerHTML = '<strong>Playback Mode:</strong> Use controls to play the choreography animation.';
+                playbackControls.classList.remove('hidden');
+                designControls.classList.add('hidden');
+            }
+        } else {
+            toggleModeBtn.classList.remove('hidden');
+        }
+    }
+
+    // Hide People tab for USER role (they can't add/remove people)
+    const peopleTab = document.querySelector('[data-tab="people"]');
+    if (peopleTab) {
+        if (!canDesign()) {
+            peopleTab.classList.add('hidden');
+        } else {
+            peopleTab.classList.remove('hidden');
+        }
+    }
+
+    // Hide choreography save/delete controls for USER role
+    const choreographySaveSection = document.querySelector('#choreographiesTab .form-row');
+    if (choreographySaveSection) {
+        if (!canDesign()) {
+            choreographySaveSection.classList.add('hidden');
+        } else {
+            choreographySaveSection.classList.remove('hidden');
+        }
+    }
+
+    // Show/hide admin button for ADMIN role
+    const adminBtn = document.getElementById('adminBtn');
+    if (adminBtn) {
+        if (isAdmin()) {
+            adminBtn.classList.remove('hidden');
+        } else {
+            adminBtn.classList.add('hidden');
+        }
+    }
+}
+
+// Admin functions
+function showAdminPanel() {
+    document.getElementById('appContainer').classList.add('hidden');
+    document.getElementById('adminContainer').classList.remove('hidden');
+    document.getElementById('adminUserFullName').textContent = currentUser.fullName || currentUser.username;
+    loadAllUsers();
+    loadAdminMappingData();
+}
+
+function hideAdminPanel() {
+    document.getElementById('adminContainer').classList.add('hidden');
+    document.getElementById('appContainer').classList.remove('hidden');
+}
+
+async function loadAllUsers() {
+    try {
+        const users = await Api.fetchAllUsers();
+        renderAllUsers(users);
+    } catch (error) {
+        console.error('Error loading users:', error);
+        showAdminStatus('Error loading users', 'error');
+    }
+}
+
+function renderAllUsers(users) {
+    const container = document.getElementById('adminUsersList');
+
+    if (users.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">👤</div>
+                <div>No users found</div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = '';
+    users.forEach(user => {
+        const card = document.createElement('div');
+        card.className = 'admin-user-card';
+
+        const rolesHtml = user.roles.map(role => {
+            const roleClass = role === 'ROLE_ADMIN' ? 'role-admin'
+                            : role === 'ROLE_CHOREOGRAPHER' ? 'role-choreographer'
+                            : 'role-user';
+            const roleName = role.replace('ROLE_', '');
+            return `<span class="admin-user-role ${roleClass}">${roleName}</span>`;
+        }).join('');
+
+        card.innerHTML = `
+            <div class="admin-user-header">
+                <div>
+                    <div class="admin-user-name">${user.fullName}</div>
+                    <div class="admin-user-info">@${user.username} • ${user.email}</div>
+                    <div>${rolesHtml}</div>
+                </div>
+                <div class="admin-user-actions">
+                    <button class="btn-warning btn-small change-role-btn" data-user-id="${user.id}">Change Role</button>
+                    <button class="btn-danger btn-small delete-user-btn" data-user-id="${user.id}">Delete</button>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+
+    // Add event listeners
+    document.querySelectorAll('.change-role-btn').forEach(btn => {
+        btn.addEventListener('click', () => changeUserRole(parseInt(btn.dataset.userId)));
+    });
+
+    document.querySelectorAll('.delete-user-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteUserAdmin(parseInt(btn.dataset.userId)));
+    });
+}
+
+async function createNewUser() {
+    const username = document.getElementById('adminNewUsername').value.trim();
+    const email = document.getElementById('adminNewEmail').value.trim();
+    const fullName = document.getElementById('adminNewFullName').value.trim();
+    const password = document.getElementById('adminNewPassword').value;
+    const role = document.getElementById('adminNewRole').value;
+
+    if (!username || !email || !fullName || !password) {
+        showAdminStatus('Please fill in all fields', 'error');
+        return;
+    }
+
+    try {
+        await Api.createUser(username, email, fullName, password, role);
+        showAdminStatus('User created successfully!', 'success');
+
+        // Clear form
+        document.getElementById('adminNewUsername').value = '';
+        document.getElementById('adminNewEmail').value = '';
+        document.getElementById('adminNewFullName').value = '';
+        document.getElementById('adminNewPassword').value = '';
+        document.getElementById('adminNewRole').value = 'ROLE_USER';
+
+        // Reload users list
+        await loadAllUsers();
+    } catch (error) {
+        showAdminStatus('Error creating user: ' + error.message, 'error');
+    }
+}
+
+async function changeUserRole(userId) {
+    const newRole = prompt('Enter new role (ROLE_USER, ROLE_CHOREOGRAPHER, or ROLE_ADMIN):');
+    if (!newRole) return;
+
+    const validRoles = ['ROLE_USER', 'ROLE_CHOREOGRAPHER', 'ROLE_ADMIN'];
+    if (!validRoles.includes(newRole)) {
+        showAdminStatus('Invalid role. Must be ROLE_USER, ROLE_CHOREOGRAPHER, or ROLE_ADMIN', 'error');
+        return;
+    }
+
+    try {
+        await Api.updateUserRole(userId, newRole);
+        showAdminStatus('User role updated successfully!', 'success');
+        await loadAllUsers();
+    } catch (error) {
+        showAdminStatus('Error updating user role: ' + error.message, 'error');
+    }
+}
+
+async function deleteUserAdmin(userId) {
+    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+
+    try {
+        await Api.deleteUser(userId);
+        showAdminStatus('User deleted successfully!', 'success');
+        await loadAllUsers();
+    } catch (error) {
+        showAdminStatus('Error deleting user: ' + error.message, 'error');
+    }
+}
+
+function showAdminStatus(message, type) {
+    const statusEl = document.getElementById('adminCreateStatus');
+    statusEl.textContent = message;
+    statusEl.className = `status ${type}`;
+
+    setTimeout(() => {
+        statusEl.className = 'status';
+    }, 3000);
+}
+
+function showMappingStatus(message, type) {
+    const statusEl = document.getElementById('adminMappingStatus');
+    statusEl.textContent = message;
+    statusEl.className = `status ${type}`;
+
+    setTimeout(() => {
+        statusEl.className = 'status';
+    }, 3000);
+}
+
+// Admin Mapping functions
+async function loadAdminMappingData() {
+    try {
+        // Load all users for dropdown
+        const users = await Api.fetchAllUsers();
+        const userSelect = document.getElementById('adminMappingUserId');
+        userSelect.innerHTML = '<option value="">Select a user...</option>';
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = `${user.fullName} (@${user.username})`;
+            userSelect.appendChild(option);
+        });
+
+        // Load all projects for dropdown
+        const allProjects = await Api.fetchProjects();
+        const projectSelect = document.getElementById('adminMappingProjectId');
+        projectSelect.innerHTML = '<option value="">Select a project...</option>';
+        allProjects.forEach(project => {
+            const option = document.createElement('option');
+            option.value = project.id;
+            option.textContent = project.name;
+            projectSelect.appendChild(option);
+        });
+
+        // Load and render all mappings
+        await loadAllMappings();
+    } catch (error) {
+        console.error('Error loading mapping data:', error);
+        showMappingStatus('Error loading data', 'error');
+    }
+}
+
+async function loadAllMappings() {
+    try {
+        const mappings = await Api.fetchAllMappings();
+        renderAllMappings(mappings);
+    } catch (error) {
+        console.error('Error loading mappings:', error);
+        showMappingStatus('Error loading mappings', 'error');
+    }
+}
+
+function renderAllMappings(mappings) {
+    const container = document.getElementById('adminMappingsList');
+
+    if (mappings.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🔗</div>
+                <div>No mappings found</div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = '';
+    mappings.forEach(mapping => {
+        const card = document.createElement('div');
+        card.className = 'admin-user-card';
+
+        card.innerHTML = `
+            <div class="admin-user-header">
+                <div>
+                    <div class="admin-user-name">${mapping.userFullName || mapping.username}</div>
+                    <div class="admin-user-info">@${mapping.username} → ${mapping.personName} (${mapping.choreographyName || 'No choreography'})</div>
+                    ${mapping.isPrimary ? '<span class="admin-user-role role-admin">PRIMARY</span>' : ''}
+                </div>
+                <div class="admin-user-actions">
+                    <button class="btn-danger btn-small delete-mapping-btn" data-mapping-id="${mapping.id}">Delete</button>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+
+    // Add event listeners
+    document.querySelectorAll('.delete-mapping-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteMappingFromAdmin(parseInt(btn.dataset.mappingId)));
+    });
+}
+
+async function onProjectChange() {
+    const projectId = document.getElementById('adminMappingProjectId').value;
+
+    if (!projectId) {
+        document.getElementById('adminMappingChoreographyId').innerHTML = '<option value="">Select a choreography...</option>';
+        document.getElementById('adminMappingPersonId').innerHTML = '<option value="">Select a person...</option>';
+        return;
+    }
+
+    try {
+        // Load choreographies for selected project
+        const choreographies = await Api.fetchChoreographies(parseInt(projectId));
+        const choreoSelect = document.getElementById('adminMappingChoreographyId');
+        choreoSelect.innerHTML = '<option value="">Select a choreography...</option>';
+        choreographies.forEach(choreo => {
+            const option = document.createElement('option');
+            option.value = choreo.id;
+            option.textContent = choreo.name;
+            choreoSelect.appendChild(option);
+        });
+
+        // Load people for selected project
+        const people = await Api.fetchPeople(parseInt(projectId));
+        const personSelect = document.getElementById('adminMappingPersonId');
+        personSelect.innerHTML = '<option value="">Select a person...</option>';
+        if (people && people.length > 0) {
+            people.forEach(person => {
+                const option = document.createElement('option');
+                option.value = person.id;
+                option.textContent = person.name;
+                personSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading project data:', error);
+        showMappingStatus('Error loading project data', 'error');
+    }
+}
+
+async function createAdminMapping() {
+    const userId = document.getElementById('adminMappingUserId').value;
+    const personId = document.getElementById('adminMappingPersonId').value;
+    const choreographyId = document.getElementById('adminMappingChoreographyId').value;
+    const isPrimary = document.getElementById('adminMappingIsPrimary').checked;
+
+    if (!userId || !personId) {
+        showMappingStatus('Please select a user and person', 'error');
+        return;
+    }
+
+    try {
+        await Api.createMappingForUser(
+            parseInt(userId),
+            parseInt(personId),
+            choreographyId ? parseInt(choreographyId) : null,
+            isPrimary
+        );
+        showMappingStatus('Mapping created successfully!', 'success');
+
+        // Clear form
+        document.getElementById('adminMappingUserId').value = '';
+        document.getElementById('adminMappingProjectId').value = '';
+        document.getElementById('adminMappingChoreographyId').innerHTML = '<option value="">Select a choreography...</option>';
+        document.getElementById('adminMappingPersonId').innerHTML = '<option value="">Select a person...</option>';
+        document.getElementById('adminMappingIsPrimary').checked = false;
+
+        // Reload mappings list
+        await loadAllMappings();
+    } catch (error) {
+        showMappingStatus('Error creating mapping: ' + error.message, 'error');
+    }
+}
+
+async function deleteMappingFromAdmin(mappingId) {
+    if (!confirm('Are you sure you want to delete this mapping?')) return;
+
+    try {
+        await Api.deleteMappingAdmin(mappingId);
+        showMappingStatus('Mapping deleted successfully!', 'success');
+        await loadAllMappings();
+    } catch (error) {
+        showMappingStatus('Error deleting mapping: ' + error.message, 'error');
+    }
+}
 
 async function login(username, password) {
     try {
@@ -27,7 +445,7 @@ async function login(username, password) {
         localStorage.setItem('authToken', authToken);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-        showApp();
+        showProjectSelection();
         return true;
     } catch (error) {
         console.error('Login error:', error);
@@ -35,29 +453,16 @@ async function login(username, password) {
     }
 }
 
-async function register(username, email, fullName, password) {
-    try {
-
-        const data = await Api.register(username, email, fullName, password);
-        authToken = data.token;
-        currentUser = data;
-        localStorage.setItem('authToken', authToken);
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-
-        showApp();
-        return true;
-    } catch (error) {
-        console.error('Registration error:', error);
-        return false;
-    }
-}
 
 function logout() {
     authToken = null;
     currentUser = null;
     userMappings = [];
+    currentProjectId = null;
+    projects = [];
     localStorage.removeItem('authToken');
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('currentProjectId');
 
     people = [];
     routes = {};
@@ -71,25 +476,169 @@ function logout() {
     }
 
     document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('projectSelectionScreen').classList.add('hidden');
     document.getElementById('appContainer').classList.add('hidden');
+}
+
+async function showProjectSelection() {
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('projectSelectionScreen').classList.remove('hidden');
+    document.getElementById('appContainer').classList.add('hidden');
+
+    applyRoleBasedUI();
+    await loadProjectList();
 }
 
 function showApp() {
     document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('projectSelectionScreen').classList.add('hidden');
     document.getElementById('appContainer').classList.remove('hidden');
     document.getElementById('userFullName').textContent = currentUser.fullName || currentUser.username;
+    applyRoleBasedUI();
     initializeApp();
 }
 
-function checkAuth() {
+async function checkAuth() {
     const savedToken = localStorage.getItem('authToken');
     const savedUser = localStorage.getItem('currentUser');
+    const savedProjectId = localStorage.getItem('currentProjectId');
 
     if (savedToken && savedUser) {
         authToken = savedToken;
         currentUser = JSON.parse(savedUser);
-        showApp();
+
+        if (savedProjectId) {
+            currentProjectId = parseInt(savedProjectId);
+            // Load projects to get the project name
+            await loadProjectList();
+            const project = projects.find(p => p.id === currentProjectId);
+            if (project) {
+                document.getElementById('currentProjectName').textContent = project.name;
+            }
+            showApp();
+        } else {
+            showProjectSelection();
+        }
     }
+}
+
+async function loadProjectList() {
+    projects = await Api.fetchProjects();
+    renderProjectList();
+}
+
+function renderProjectList() {
+    const container = document.getElementById('projectList');
+
+    if (projects.length === 0) {
+        const message = canDesign()
+            ? 'Create your first project to get started'
+            : 'No projects available. Contact an administrator to get access.';
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📁</div>
+                <div>No projects yet</div>
+                <div style="font-size: 12px;">${message}</div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = '';
+    projects.forEach(project => {
+        const item = document.createElement('div');
+        item.className = 'choreography-item';
+
+        const date = new Date(project.updatedAt[0], project.updatedAt[1] - 1, project.updatedAt[2],
+                               project.updatedAt[3], project.updatedAt[4], project.updatedAt[5]);
+        const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+
+        item.innerHTML = `
+            <div class="choreography-item-header">
+                <div>
+                    <div class="choreography-name">${project.name}</div>
+                    ${project.description ? `<div style="font-size: 11px; color: #7f8c8d;">${project.description}</div>` : ''}
+                    <div class="choreography-date">${dateStr}</div>
+                </div>
+            </div>
+        `;
+
+        item.addEventListener('click', () => selectProject(project.id));
+        container.appendChild(item);
+    });
+}
+
+async function createNewProject() {
+    const name = document.getElementById('newProjectName').value.trim();
+    const description = document.getElementById('newProjectDescription').value.trim();
+
+    if (!name) {
+        showProjectError('Please enter a project name');
+        return;
+    }
+
+    try {
+        await Api.createProject(name, description);
+        document.getElementById('newProjectName').value = '';
+        document.getElementById('newProjectDescription').value = '';
+        await loadProjectList();
+        showProjectError('Project created successfully!', 'success');
+    } catch (error) {
+        console.error('Error creating project:', error);
+        showProjectError('Error creating project');
+    }
+}
+
+function selectProject(projectId) {
+    currentProjectId = projectId;
+    localStorage.setItem('currentProjectId', projectId);
+    hasUnsavedChanges = false;
+
+    // Set the project title
+    const project = projects.find(p => p.id === projectId);
+    if (project) {
+        document.getElementById('currentProjectName').textContent = project.name;
+    }
+
+    showApp();
+}
+
+function switchToProjectSelection() {
+    if (hasUnsavedChanges) {
+        if (!confirm('You have unsaved changes. If you switch projects, all unsaved changes will be lost. Continue?')) {
+            return;
+        }
+    }
+
+    // Clear the current project data
+    currentProjectId = null;
+    localStorage.removeItem('currentProjectId');
+    hasUnsavedChanges = false;
+
+    // Clear canvas data
+    people = [];
+    routes = {};
+    choreographies = [];
+    selectedPerson = null;
+    currentChoreographyId = null;
+
+    if (layer) {
+        layer.destroyChildren();
+        layer.draw();
+    }
+
+    showProjectSelection();
+}
+
+function showProjectError(message, type = 'error') {
+    const errorEl = document.getElementById('projectError');
+    errorEl.textContent = message;
+    errorEl.className = `status ${type}`;
+    errorEl.style.display = 'block';
+
+    setTimeout(() => {
+        errorEl.style.display = 'none';
+    }, 3000);
 }
 
 async function fetchUserMappings() {
@@ -117,7 +666,7 @@ async function createUserMapping(personId) {
 
 async function deleteUserMapping(mappingId) {
     try {
-        await APi.deleteUserMapping(mappingId);
+        await Api.deleteUserMapping(mappingId);
 
         await fetchUserMappings();
         renderPersonList();
@@ -163,20 +712,30 @@ function renderUserMappings() {
 
 async function saveChoreography() {
     const name = document.getElementById('choreographyName').value.trim();
+    const steps = parseInt(document.getElementById('choreographySteps').value);
+
     if (!name) {
         showStatus('Please enter a choreography name', 'error');
+        return;
+    }
+
+    if (!steps || steps < 1) {
+        showStatus('Please enter a valid number of steps', 'error');
         return;
     }
 
     const choreographyData = {
         id: currentChoreographyId,
         name: name,
+        steps: steps,
         routes: routes
     };
 
     try {
-        const saved = await Api.saveChoreography(choreographyData);
+        const saved = await Api.saveChoreography(choreographyData, currentProjectId);
         currentChoreographyId = saved.id;
+        currentChoreographySteps = saved.steps;
+        hasUnsavedChanges = false;
 
         showStatus('Choreography saved successfully!', 'success');
         await loadChoreographyList();
@@ -196,7 +755,7 @@ async function deleteChoreography() {
 
     try {
 
-        await Api.deleteChoreography(currentChoreographyId);
+        await Api.deleteChoreography(currentChoreographyId, currentProjectId);
 
         showStatus('Choreography deleted successfully!', 'success');
         currentChoreographyId = null;
@@ -210,10 +769,12 @@ async function deleteChoreography() {
 }
 
 async function loadChoreographyFromItem(id) {
-    const choreography = await Api.fetchChoreography(id);
+    const choreography = await Api.fetchChoreography(id, currentProjectId);
     if (choreography) {
         currentChoreographyId = choreography.id;
+        currentChoreographySteps = choreography.steps || 8;
         document.getElementById('choreographyName').value = choreography.name;
+        document.getElementById('choreographySteps').value = currentChoreographySteps;
         routes = choreography.routes || {};
 
         people.forEach((person) => {
@@ -231,7 +792,7 @@ async function loadChoreographyFromItem(id) {
 }
 
 async function loadChoreographyList() {
-    choreographies = await Api.fetchChoreographies();
+    choreographies = await Api.fetchChoreographies(currentProjectId);
     renderChoreographyList();
 }
 
@@ -265,6 +826,7 @@ function renderChoreographyList() {
                 <div>
                     <div class="choreography-name">${choreo.name}</div>
                     <div class="choreography-date">${dateStr}</div>
+                    <div class="choreography-steps">${choreo.steps} steps</div>
                 </div>
             </div>
         `;
@@ -291,7 +853,7 @@ async function addPerson() {
     };
 
     try {
-        const saved = await Api.addPerson(personData);
+        const saved = await Api.addPerson(personData, currentProjectId);
 
         const startX = -100;
         const startY = -100;
@@ -346,7 +908,7 @@ async function removePerson(index) {
     try {
         const person = people[index];
 
-        await Api.removePerson(person.id);
+        await Api.removePerson(person.id, currentProjectId);
 
         person.circle.destroy();
         person.label.destroy();
@@ -418,7 +980,7 @@ function showStatus(message, type) {
 }
 
 async function initializeFromBackend() {
-    const peopleData = await Api.fetchPeople();
+    const peopleData = await Api.fetchPeople(currentProjectId);
 
     if (peopleData && peopleData.length > 0) {
         createPeopleFromData(peopleData);
@@ -492,31 +1054,92 @@ function selectPerson(id, index) {
 }
 
 function snapToGrid(val) {
-    return Math.round(val / GRID_SPACING) * GRID_SPACING;
+    if (snapToGridEnabled) {
+        return Math.round(val / GRID_SPACING) * GRID_SPACING;
+    }
+    return val;
+}
+
+function toggleSnapping() {
+    snapToGridEnabled = !snapToGridEnabled;
+    const btn = document.getElementById('toggleSnapping');
+    btn.textContent = snapToGridEnabled ? '🧲 Snap to Grid: ON' : '🧲 Snap to Grid: OFF';
+}
+
+function deleteLastStep() {
+    if (!selectedPerson) {
+        showStatus('Please select a person first', 'error');
+        return;
+    }
+
+    const route = routes[selectedPerson.id];
+    if (!route || route.length === 0) {
+        showStatus('No steps to delete', 'error');
+        return;
+    }
+
+    route.pop();
+    hasUnsavedChanges = true;
+    redrawRoutes();
 }
 
 function setupEventListeners() {
     stage.on('click', (e) => {
         if (mode !== 'design' || selectedPerson === null) return;
 
+        const currentSteps = routes[selectedPerson.id] ? routes[selectedPerson.id].length : 0;
+
+        if (currentSteps >= currentChoreographySteps) {
+            showStatus(`Maximum number of steps (${currentChoreographySteps}) reached!`, 'error');
+            return;
+        }
+
         const pos = stage.getPointerPosition();
         const snappedX = snapToGrid(pos.x);
         const snappedY = snapToGrid(pos.y);
 
         routes[selectedPerson.id].push({x: snappedX, y: snappedY});
+        hasUnsavedChanges = true;
         redrawRoutes();
     });
 
     stage.on('mousemove', (e) => {
-        if (mode !== 'design' || selectedPerson === null) return;
+        if (mode !== 'design' || selectedPerson === null) {
+            if (stepCounterText) {
+                stepCounterText.destroy();
+                stepCounterText = null;
+                layer.batchDraw();
+            }
+            return;
+        }
 
-            const pos = stage.getPointerPosition();
-            const snappedX = snapToGrid(pos.x);
-            const snappedY = snapToGrid(pos.y);
+        const pos = stage.getPointerPosition();
+        const snappedX = snapToGrid(pos.x);
+        const snappedY = snapToGrid(pos.y);
 
-            redrawRoutes({x: snappedX, y: snappedY});
+        // Update step counter
+        const currentSteps = routes[selectedPerson.id] ? routes[selectedPerson.id].length : 0;
+
+        if (stepCounterText) {
+            stepCounterText.destroy();
+        }
+
+        stepCounterText = new Konva.Text({
+            x: snappedX + 15,
+            y: snappedY - 15,
+            text: `${currentSteps}/${currentChoreographySteps}`,
+            fontSize: 16,
+            fontStyle: 'bold',
+            fill: currentSteps >= currentChoreographySteps ? '#e74c3c' : '#2ecc71',
+            stroke: '#fff',
+            strokeWidth: 1
+        });
+
+        layer.add(stepCounterText);
+        redrawRoutes({x: snappedX, y: snappedY});
     });
 
+    document.getElementById('switchProjectBtn').addEventListener('click', switchToProjectSelection);
     document.getElementById('toggleMode').addEventListener('click', toggleMode);
     document.getElementById('clearAll').addEventListener('click', () => clearAllRoutes(true));
     document.getElementById('resetPositions').addEventListener('click', resetPositions);
@@ -526,6 +1149,8 @@ function setupEventListeners() {
     document.getElementById('deleteChoreography').addEventListener('click', deleteChoreography);
     document.getElementById('addPerson').addEventListener('click', addPerson);
     document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('toggleSnapping').addEventListener('click', toggleSnapping);
+    document.getElementById('deleteLastStep').addEventListener('click', deleteLastStep);
     document.getElementById('personList').addEventListener('click', (event) => {
         const clearBtn = event.target.closest('.clear-route-btn');
         const removeBtn = event.target.closest('.remove-person-btn');
@@ -556,10 +1181,12 @@ function setupEventListeners() {
         });
     });
 
-    const speedSlider = document.getElementById('speed');
-    speedSlider.addEventListener('input', (e) => {
-        playbackSpeed = parseFloat(e.target.value);
-        document.getElementById('speedValue').textContent = playbackSpeed.toFixed(1) + 'x';
+    const bpmInput = document.getElementById('bpm');
+    bpmInput.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        if (value >= 30 && value <= 300) {
+            currentBPM = value;
+        }
     });
 }
 
@@ -662,18 +1289,21 @@ function toggleMode() {
     const btn = document.getElementById('toggleMode');
     const info = document.getElementById('modeInfo');
     const playbackControls = document.getElementById('playbackControls');
+    const designControls = document.getElementById('designControls');
 
     if (mode === 'playback') {
         btn.textContent = 'Switch to Design Mode';
         info.innerHTML = '<strong>Playback Mode:</strong> Use controls to play the choreography animation.';
-        playbackControls.style.display = 'block';
+        playbackControls.classList.remove('hidden');
+        designControls.classList.add('hidden');
         layer.find('.route-line').forEach(line => line.destroy());
         layer.find('.route-point').forEach(point => point.destroy());
         layer.batchDraw();
     } else {
         btn.textContent = 'Switch to Playback Mode';
         info.innerHTML = '<strong>Design Mode:</strong> Select a person from the sidebar and click on the grid to create their route.';
-        playbackControls.style.display = 'none';
+        playbackControls.classList.add('hidden');
+        designControls.classList.remove('hidden');
         stopAnimation();
         redrawRoutes();
     }
@@ -713,7 +1343,11 @@ function animate() {
     const deltaTime = (now - lastTime) / 1000;
     lastTime = now;
 
-    animationTime += deltaTime * playbackSpeed;
+    // Calculate time per step based on BPM
+    // Each beat = one step, so time per step = 60 / BPM
+    const timePerStep = 60 / currentBPM;
+
+    animationTime += deltaTime;
     document.getElementById('timeDisplay').textContent = animationTime.toFixed(1) + 's';
 
     people.forEach((person, idx) => {
@@ -721,7 +1355,7 @@ function animate() {
         if (!route || route.length < 2) return;
 
         const totalSegments = route.length - 1;
-        const totalDuration = totalSegments;
+        const totalDuration = totalSegments * timePerStep;
 
         if (animationTime >= totalDuration) {
             const last = route[route.length - 1];
@@ -732,8 +1366,8 @@ function animate() {
             return;
         }
 
-        const currentSegment = Math.floor(animationTime);
-        const progress = animationTime % 1;
+        const currentSegment = Math.floor(animationTime / timePerStep);
+        const progress = (animationTime % timePerStep) / timePerStep;
 
         const start = route[currentSegment];
         const end = route[(currentSegment + 1) % route.length];
@@ -769,6 +1403,7 @@ function clearRoute(person, confirm_action) {
 
     if (routes && routes[person.id]) {
         routes[person.id] = [];
+        hasUnsavedChanges = true;
     }
 
     resetPositions();
@@ -781,6 +1416,7 @@ function clearAllRoutes(confirm_action) {
     people.forEach((person) => {
         routes[person.id] = [];
     });
+    hasUnsavedChanges = true;
     resetPositions();
     redrawRoutes();
 }
@@ -815,19 +1451,15 @@ function initializeApp() {
 
 // Login/Register Event Handlers
 document.addEventListener('DOMContentLoaded', () => {
+    // Hide loading screen after 2 seconds
+    setTimeout(() => {
+        const loadingScreen = document.getElementById('loadingScreen');
+        loadingScreen.classList.add('hidden');
+        document.getElementById('loginScreen').classList.remove('hidden');
+    }, 2000);
+
     // Check if already logged in
     checkAuth();
-
-    // Login tab switching
-    document.querySelectorAll('.login-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabName = tab.dataset.loginTab;
-            document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.login-form-content').forEach(c => c.classList.remove('active'));
-            tab.classList.add('active');
-            document.getElementById(`${tabName}FormContent`).classList.add('active');
-        });
-    });
 
     // Login form
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -842,18 +1474,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Register form
-    document.getElementById('registerForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('registerUsername').value;
-        const email = document.getElementById('registerEmail').value;
-        const fullName = document.getElementById('registerFullName').value;
-        const password = document.getElementById('registerPassword').value;
+    // Project selection event listeners
+    document.getElementById('createProjectBtn').addEventListener('click', createNewProject);
+    document.getElementById('logoutFromProjectsBtn').addEventListener('click', logout);
 
-        const success = await register(username, email, fullName, password);
-        if (!success) {
-            document.getElementById('registerError').textContent = 'Registration failed. Username or email may already exist.';
-            document.getElementById('registerError').style.display = 'block';
-        }
-    });
+    // Admin panel event listeners
+    document.getElementById('adminBtn').addEventListener('click', showAdminPanel);
+    document.getElementById('backToAppBtn').addEventListener('click', hideAdminPanel);
+    document.getElementById('createUserBtn').addEventListener('click', createNewUser);
+    document.getElementById('adminLogoutBtn').addEventListener('click', logout);
+
+    // Admin mapping event listeners
+    document.getElementById('adminMappingProjectId').addEventListener('change', onProjectChange);
+    document.getElementById('createMappingBtn').addEventListener('click', createAdminMapping);
 });

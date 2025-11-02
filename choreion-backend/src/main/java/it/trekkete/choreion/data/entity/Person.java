@@ -21,6 +21,10 @@ public class Person {
 
     private String letter;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
+
     @OneToMany(mappedBy = "person")
     private Set<UserPersonMapping> userMappings = new HashSet<>();
 }

@@ -5,6 +5,9 @@ import lombok.Data;
 @Data
 public class PersonMappingDTO {
     private Long id;
+    private Long userId;
+    private String username;
+    private String userFullName;
     private Long personId;
     private String personName;
     private String personColor;
