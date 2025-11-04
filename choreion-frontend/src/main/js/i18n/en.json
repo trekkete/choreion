@@ -38,7 +38,7 @@
   "controls.pause": "Pause",
   "controls.stop": "Stop",
   "controls.bpm": "BPM:",
-  "controls.time": "Time:",
+  "controls.step": "Step:",
 
   "choreography.title": "Choreographies",
   "choreography.name": "Choreography name...",

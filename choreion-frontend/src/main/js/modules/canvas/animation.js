@@ -15,7 +15,8 @@ import {
     setLastTime,
     getAnimationFrame,
     setAnimationFrame,
-    resetAnimationState
+    resetAnimationState,
+    getCurrentChoreographySteps
 } from '../state.js';
 import { getLayer } from './stage.js';
 import { resetPositions } from './person.js';
@@ -51,9 +52,10 @@ export function stopAnimation() {
 
     const playPauseBtn = document.getElementById('playPause');
     const timeDisplay = document.getElementById('timeDisplay');
+    const totalSteps = getCurrentChoreographySteps();
 
     if (playPauseBtn) playPauseBtn.textContent = '▶ Play';
-    if (timeDisplay) timeDisplay.textContent = '0.0s';
+    if (timeDisplay) timeDisplay.textContent = `0 / ${totalSteps}`;
 
     resetPositions();
 }
@@ -77,9 +79,13 @@ function animate() {
     animationTime += deltaTime;
     setAnimationTime(animationTime);
 
+    // Calculate current step
+    const currentStep = Math.floor(animationTime / timePerStep);
+    const totalSteps = getCurrentChoreographySteps();
+
     const timeDisplay = document.getElementById('timeDisplay');
     if (timeDisplay) {
-        timeDisplay.textContent = animationTime.toFixed(1) + 's';
+        timeDisplay.textContent = `${Math.min(currentStep + 1, totalSteps)} / ${totalSteps}`;
     }
 
     const people = getPeople();

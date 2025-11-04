@@ -1,13 +1,15 @@
 /**
  * Canvas Stage Module
- * Handles Konva.js stage and layer initialization
+ * Handles Konva.js stage and layer initialization with responsive sizing
  */
 
-import { GRID_SIZE } from '../constants.js';
+import { GRID_SIZE, getResponsiveGridSize } from '../constants.js';
 
 let stage = null;
 let layer = null;
 let gridLayer = null;
+let currentGridSize = GRID_SIZE;
+let resizeListener = null;
 
 /**
  * Initialize the Konva stage and layers
@@ -19,10 +21,13 @@ export function initializeStage() {
         return { stage, layer, gridLayer };
     }
 
+    // Calculate initial responsive grid size
+    currentGridSize = getResponsiveGridSize();
+
     stage = new Konva.Stage({
         container: 'container',
-        width: GRID_SIZE,
-        height: GRID_SIZE
+        width: currentGridSize,
+        height: currentGridSize
     });
 
     gridLayer = new Konva.Layer();
@@ -31,7 +36,88 @@ export function initializeStage() {
     stage.add(gridLayer);
     stage.add(layer);
 
+    // Set up resize listener
+    setupResizeListener();
+
     return { stage, layer, gridLayer };
+}
+
+/**
+ * Get current grid size
+ * @returns {number} Current grid size
+ */
+export function getCurrentGridSize() {
+    return currentGridSize;
+}
+
+/**
+ * Resize the stage based on current viewport
+ */
+export function resizeStage() {
+    if (!stage) return;
+
+    const newGridSize = getResponsiveGridSize();
+
+    // Only resize if size actually changed
+    if (newGridSize === currentGridSize) return;
+
+    const scaleFactor = newGridSize / currentGridSize;
+    currentGridSize = newGridSize;
+
+    // Update stage size
+    stage.width(newGridSize);
+    stage.height(newGridSize);
+
+    // Scale all existing elements on the layers
+    layer.children.forEach(child => {
+        if (child.x) child.x(child.x() * scaleFactor);
+        if (child.y) child.y(child.y() * scaleFactor);
+        if (child.radius) child.radius(child.radius() * scaleFactor);
+    });
+
+    // Redraw layers
+    gridLayer.batchDraw();
+    layer.batchDraw();
+
+    // Dispatch custom event for other modules to react
+    window.dispatchEvent(new CustomEvent('stageResize', {
+        detail: { gridSize: newGridSize, scaleFactor }
+    }));
+}
+
+/**
+ * Setup window resize listener with debouncing
+ */
+function setupResizeListener() {
+    let resizeTimeout;
+
+    resizeListener = () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            resizeStage();
+        }, 250); // Debounce resize events
+    };
+
+    window.addEventListener('resize', resizeListener);
+    window.addEventListener('orientationchange', resizeListener);
+}
+
+/**
+ * Remove resize listener (cleanup)
+ */
+export function cleanupStage() {
+    if (resizeListener) {
+        window.removeEventListener('resize', resizeListener);
+        window.removeEventListener('orientationchange', resizeListener);
+        resizeListener = null;
+    }
+
+    if (stage) {
+        stage.destroy();
+        stage = null;
+        layer = null;
+        gridLayer = null;
+    }
 }
 
 /**
