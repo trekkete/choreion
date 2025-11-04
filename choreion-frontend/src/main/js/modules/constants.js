@@ -25,24 +25,41 @@ export const MIN_TOUCH_TARGET = 44;
 // Responsive grid size calculation
 /**
  * Calculate grid size based on viewport
+ * Ensures grid size creates a symmetrical grid with center line
  * @returns {number} Grid size in pixels
  */
 export function getResponsiveGridSize() {
     const { width, height } = getViewportDimensions();
 
+    let targetSize;
+
     if (isMobile()) {
         // Mobile: Use viewport width minus padding, make it square
         const availableWidth = width - (MOBILE_PADDING * 2);
         const availableHeight = height - 300; // Reserve space for header/controls
-        return Math.min(availableWidth, availableHeight, 600); // Max 600px on mobile
+        targetSize = Math.min(availableWidth, availableHeight, 600); // Max 600px on mobile
     } else if (isTablet()) {
         // Tablet: Use 70% of available space or 800px max
         const availableWidth = (width * 0.7) - (TABLET_PADDING * 2);
-        return Math.min(availableWidth, DEFAULT_GRID_SIZE);
+        targetSize = Math.min(availableWidth, DEFAULT_GRID_SIZE);
     } else {
-        // Desktop: Use default fixed size
+        // Desktop: Use default fixed size (800 = 40 cells * 20px spacing)
         return DEFAULT_GRID_SIZE;
     }
+
+    // Round to nearest multiple of DEFAULT_GRID_SPACING
+    let numCells = Math.round(targetSize / DEFAULT_GRID_SPACING);
+
+    // Ensure EVEN number of cells for symmetry around center line
+    // Center line is at gridSize / 2, which needs to fall on a grid line
+    if (numCells % 2 !== 0) {
+        numCells = numCells - 1; // Make it even (round down for better fit)
+    }
+
+    const gridSize = numCells * DEFAULT_GRID_SPACING;
+
+    // Ensure minimum size (at least 20 cells = 400px for usable canvas)
+    return Math.max(gridSize, DEFAULT_GRID_SPACING * 20);
 }
 
 /**
@@ -53,7 +70,7 @@ export function getResponsiveGridSize() {
 export function getResponsiveGridSpacing(gridSize) {
     // Scale spacing proportionally to grid size
     const scaleFactor = gridSize / DEFAULT_GRID_SIZE;
-    return Math.max(10, Math.round(DEFAULT_GRID_SPACING * scaleFactor));
+    return Math.max(5, Math.round(DEFAULT_GRID_SPACING * scaleFactor));
 }
 
 /**
@@ -62,7 +79,7 @@ export function getResponsiveGridSpacing(gridSize) {
  * @returns {number} Person radius in pixels
  */
 export function getResponsivePersonRadius(gridSize) {
-    // Scale person radius proportionally to grid size
+    // Scale person radius proportionally to grid size relative to DEFAULT_GRID_SIZE
     const scaleFactor = gridSize / DEFAULT_GRID_SIZE;
-    return Math.max(6, Math.round(DEFAULT_PERSON_RADIUS * scaleFactor));
+    return Math.max(3, Math.round(DEFAULT_PERSON_RADIUS * scaleFactor));
 }

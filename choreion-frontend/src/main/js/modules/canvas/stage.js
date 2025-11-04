@@ -3,7 +3,7 @@
  * Handles Konva.js stage and layer initialization with responsive sizing
  */
 
-import { GRID_SIZE, getResponsiveGridSize } from '../constants.js';
+import { GRID_SIZE, getResponsiveGridSize, DEFAULT_GRID_SIZE } from '../constants.js';
 
 let stage = null;
 let layer = null;
@@ -52,6 +52,7 @@ export function getCurrentGridSize() {
 
 /**
  * Resize the stage based on current viewport
+ * Always scales relative to DEFAULT_GRID_SIZE (800px) as the reference point
  */
 export function resizeStage() {
     if (!stage) return;
@@ -61,28 +62,58 @@ export function resizeStage() {
     // Only resize if size actually changed
     if (newGridSize === currentGridSize) return;
 
-    const scaleFactor = newGridSize / currentGridSize;
+    const oldGridSize = currentGridSize;
     currentGridSize = newGridSize;
+
+    // Always calculate scale factor relative to DEFAULT_GRID_SIZE
+    const scaleFactor = newGridSize / DEFAULT_GRID_SIZE;
 
     // Update stage size
     stage.width(newGridSize);
     stage.height(newGridSize);
 
-    // Scale all existing elements on the layers
+    // Scale all existing elements on the layers relative to DEFAULT_GRID_SIZE
     layer.children.forEach(child => {
-        if (child.x) child.x(child.x() * scaleFactor);
-        if (child.y) child.y(child.y() * scaleFactor);
-        if (child.radius) child.radius(child.radius() * scaleFactor);
+        // Get original position/size (stored relative to DEFAULT_GRID_SIZE)
+        const originalX = child.attrs.originalX !== undefined ? child.attrs.originalX : child.x() / (oldGridSize / DEFAULT_GRID_SIZE);
+        const originalY = child.attrs.originalY !== undefined ? child.attrs.originalY : child.y() / (oldGridSize / DEFAULT_GRID_SIZE);
+
+        // Store original values for future resizes
+        child.attrs.originalX = originalX;
+        child.attrs.originalY = originalY;
+
+        // Apply new scale
+        child.x(originalX * scaleFactor);
+        child.y(originalY * scaleFactor);
+
+        // Scale circles (person circles)
+        if (child.radius) {
+            const originalRadius = child.attrs.originalRadius !== undefined ? child.attrs.originalRadius : child.radius() / (oldGridSize / DEFAULT_GRID_SIZE);
+            child.attrs.originalRadius = originalRadius;
+            child.radius(originalRadius * scaleFactor);
+        }
+
+        // Scale text labels
+        if (child.fontSize) {
+            const originalFontSize = child.attrs.originalFontSize !== undefined ? child.attrs.originalFontSize : child.fontSize() / (oldGridSize / DEFAULT_GRID_SIZE);
+            child.attrs.originalFontSize = originalFontSize;
+            child.fontSize(originalFontSize * scaleFactor);
+        }
     });
+
+    // Dispatch custom event for other modules to react
+    // This will trigger route coordinate scaling and grid redraw
+    window.dispatchEvent(new CustomEvent('stageResize', {
+        detail: {
+            gridSize: newGridSize,
+            oldGridSize: oldGridSize,
+            scaleFactor
+        }
+    }));
 
     // Redraw layers
     gridLayer.batchDraw();
     layer.batchDraw();
-
-    // Dispatch custom event for other modules to react
-    window.dispatchEvent(new CustomEvent('stageResize', {
-        detail: { gridSize: newGridSize, scaleFactor }
-    }));
 }
 
 /**

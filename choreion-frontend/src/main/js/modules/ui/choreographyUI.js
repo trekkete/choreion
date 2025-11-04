@@ -17,6 +17,9 @@ import {
     setHasUnsavedChanges
 } from '../state.js';
 import { showStatus } from './statusUI.js';
+import { DEFAULT_GRID_SIZE } from '../constants.js';
+import { getCurrentGridSize } from '../canvas/stage.js';
+import { t } from '../../i18n/i18n.js';
 
 /**
  * Load choreography list for current project
@@ -99,20 +102,39 @@ export async function loadChoreographyFromItem(id) {
         const routes = choreography.routes || {};
         const people = getPeople();
 
-        // Initialize empty routes for people without routes
-        people.forEach((person) => {
-            if (!routes[person.id] || routes[person.id].length === 0) {
-                routes[person.id] = [];
+        // Scale routes based on current grid size
+        // Choreographies are saved with coordinates relative to DEFAULT_GRID_SIZE (800px)
+        // We need to scale them to the current grid size
+        const currentGridSize = getCurrentGridSize() || DEFAULT_GRID_SIZE;
+        const scaleFactor = currentGridSize / DEFAULT_GRID_SIZE;
+        const scaledRoutes = {};
+
+        Object.keys(routes).forEach(personId => {
+            const route = routes[personId];
+            if (route && route.length > 0) {
+                scaledRoutes[personId] = route.map(point => ({
+                    x: point.x * scaleFactor,
+                    y: point.y * scaleFactor
+                }));
+            } else {
+                scaledRoutes[personId] = [];
             }
         });
 
-        setRoutes(routes);
+        // Initialize empty routes for people without routes
+        people.forEach((person) => {
+            if (!scaledRoutes[person.id] || scaledRoutes[person.id].length === 0) {
+                scaledRoutes[person.id] = [];
+            }
+        });
+
+        setRoutes(scaledRoutes);
 
         // Emit events for canvas updates
         window.dispatchEvent(new Event('canvas:resetPositions'));
         window.dispatchEvent(new Event('canvas:redrawRoutes'));
 
-        showStatus('Choreography loaded successfully!', 'success');
+        showStatus(t('status.choreography.loaded'), 'success');
         renderChoreographyList();
     }
 }
@@ -125,20 +147,39 @@ export async function saveChoreography() {
     const steps = parseInt(document.getElementById('choreographySteps')?.value);
 
     if (!name) {
-        showStatus('Please enter a choreography name', 'error');
+        showStatus(t('status.choreography.error.name'), 'error');
         return;
     }
 
     if (!steps || steps < 1) {
-        showStatus('Please enter a valid number of steps', 'error');
+        showStatus(t('status.choreography.error.steps'), 'error');
         return;
     }
+
+    // Normalize routes to DEFAULT_GRID_SIZE before saving
+    // This ensures choreographies can be loaded correctly on any device
+    const currentGridSize = getCurrentGridSize() || DEFAULT_GRID_SIZE;
+    const scaleFactor = DEFAULT_GRID_SIZE / currentGridSize;
+    const currentRoutes = getRoutes();
+    const normalizedRoutes = {};
+
+    Object.keys(currentRoutes).forEach(personId => {
+        const route = currentRoutes[personId];
+        if (route && route.length > 0) {
+            normalizedRoutes[personId] = route.map(point => ({
+                x: point.x * scaleFactor,
+                y: point.y * scaleFactor
+            }));
+        } else {
+            normalizedRoutes[personId] = [];
+        }
+    });
 
     const choreographyData = {
         id: getCurrentChoreographyId(),
         name: name,
         steps: steps,
-        routes: getRoutes()
+        routes: normalizedRoutes
     };
 
     try {
@@ -148,11 +189,11 @@ export async function saveChoreography() {
         setCurrentChoreographySteps(saved.steps);
         setHasUnsavedChanges(false);
 
-        showStatus('Choreography saved successfully!', 'success');
+        showStatus(t('status.choreography.saved'), 'success');
         await loadChoreographyList();
     } catch (error) {
         console.error('Error saving choreography:', error);
-        showStatus('Error saving choreography', 'error');
+        showStatus(t('status.choreography.error.save'), 'error');
     }
 }
 

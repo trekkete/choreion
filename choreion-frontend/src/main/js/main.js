@@ -3,7 +3,7 @@
  * This is the main orchestrator that ties all modules together
  */
 
-import { GRID_SIZE, GRID_SPACING, PERSON_RADIUS } from "./modules/constants.js";
+import { GRID_SIZE, GRID_SPACING, PERSON_RADIUS, DEFAULT_GRID_SIZE } from "./modules/constants.js";
 import * as Api from "./modules/api/index.js";
 import * as Auth from "./modules/auth.js";
 import * as State from "./modules/state.js";
@@ -14,7 +14,7 @@ import { loadChoreographyList, loadChoreographyFromItem, saveChoreography, delet
 import { renderPersonList, addPerson, removePerson, renderUserMappings } from "./modules/ui/personUI.js";
 import { showAdminPanel, hideAdminPanel, createNewUser, loadAdminMappingData, onProjectChange, createAdminMapping } from "./modules/ui/adminUI.js";
 import { showStatus } from "./modules/ui/statusUI.js";
-import { showLoginScreen, showProjectSelection, showApp } from "./modules/utils/screenUtils.js";
+import { showLoginScreen, showProjectSelection, showApp, isMobile } from "./modules/utils/screenUtils.js";
 import { snapToGrid } from "./modules/utils/gridUtils.js";
 import { initializeStage, getStage, getLayer, getGridLayer } from "./modules/canvas/stage.js";
 import { drawGrid } from "./modules/canvas/grid.js";
@@ -157,6 +157,14 @@ function initializeApp() {
         setupEventListeners();
     }
 
+    // Update mode info based on current mode (which defaults to playback on mobile)
+    const currentMode = State.getMode();
+    const info = document.getElementById('modeInfo');
+
+    if (currentMode === 'playback' && info) {
+        info.innerHTML = `<strong data-i18n="mode.playback">${t('mode.playback')}:</strong> <span data-i18n="mode.playback.info">${t('mode.playback.info')}</span>`;
+    }
+
     initializeFromBackend();
 }
 
@@ -239,6 +247,13 @@ function deleteLastStep() {
 function toggleMode() {
     const currentMode = State.getMode();
     const newMode = currentMode === 'design' ? 'playback' : 'design';
+
+    // Prevent switching to design mode on mobile devices
+    if (newMode === 'design' && isMobile()) {
+        console.log('Design mode is not available on mobile devices');
+        return;
+    }
+
     State.setMode(newMode);
 
     const btn = document.getElementById('toggleMode');
@@ -463,6 +478,38 @@ window.addEventListener('routes:clearAll', (event) => {
 
 window.addEventListener('userMapping:delete', (event) => {
     deleteUserMapping(event.detail.mappingId);
+});
+
+window.addEventListener('stageResize', (event) => {
+    const { gridSize, oldGridSize } = event.detail;
+
+    // Redraw grid with new size
+    const gridLayer = getGridLayer();
+    if (gridLayer) {
+        drawGrid(gridLayer, gridSize);
+    }
+
+    // Scale all route coordinates relative to DEFAULT_GRID_SIZE
+    // First, normalize routes back to DEFAULT_GRID_SIZE if needed
+    const routes = State.getRoutes();
+    const oldScaleFactor = oldGridSize / DEFAULT_GRID_SIZE;
+    const newScaleFactor = gridSize / DEFAULT_GRID_SIZE;
+
+    const scaledRoutes = {};
+
+    Object.keys(routes).forEach(personId => {
+        const route = routes[personId];
+        scaledRoutes[personId] = route.map(point => ({
+            // Convert to DEFAULT_GRID_SIZE coordinates, then scale to new size
+            x: (point.x / oldScaleFactor) * newScaleFactor,
+            y: (point.y / oldScaleFactor) * newScaleFactor
+        }));
+    });
+
+    State.setRoutes(scaledRoutes);
+
+    // Redraw routes with new coordinates
+    redrawRoutes();
 });
 
 // ============= DOM Ready =============

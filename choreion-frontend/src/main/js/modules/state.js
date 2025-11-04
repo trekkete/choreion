@@ -142,7 +142,11 @@ export function clearAllRoutes() {
 }
 
 // ============= Mode State =============
-let mode = 'design';
+// Import isMobile to set default mode based on device
+import { isMobile } from './utils/screenUtils.js';
+
+// Default mode: playback on mobile, design on desktop
+let mode = isMobile() ? 'playback' : 'design';
 
 export function setMode(newMode) {
     mode = newMode;

@@ -3,9 +3,9 @@
  * Handles creating and managing person shapes on the canvas
  */
 
-import { PERSON_RADIUS } from '../constants.js';
+import { PERSON_RADIUS, DEFAULT_GRID_SIZE, getResponsivePersonRadius } from '../constants.js';
 import { addPersonToState, removePersonFromState, getPeople, setRouteForPerson, getRouteForPerson } from '../state.js';
-import { getLayer } from './stage.js';
+import { getLayer, getCurrentGridSize } from './stage.js';
 
 /**
  * Create a person circle and label on the canvas
@@ -17,10 +17,14 @@ export function createPerson(personData, visualData) {
     const startX = -100;
     const startY = -100;
 
+    // Use responsive radius based on current grid size
+    const currentGridSize = getCurrentGridSize() || DEFAULT_GRID_SIZE;
+    const radius = getResponsivePersonRadius(currentGridSize);
+
     const circle = new Konva.Circle({
         x: startX,
         y: startY,
-        radius: PERSON_RADIUS,
+        radius: radius,
         fill: visualData.color,
         stroke: '#333',
         strokeWidth: 2,

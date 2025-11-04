@@ -1,3 +1,4 @@
 /choreion-backend/target/
 /.idea/
 /CLAUDE.md
+.DS_Store
