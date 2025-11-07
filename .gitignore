@@ -2,3 +2,6 @@
 /.idea/
 /CLAUDE.md
 .DS_Store
+
+# Deployment environment variables
+/choreion-deployment/.env

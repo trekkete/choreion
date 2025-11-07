@@ -858,8 +858,8 @@ select:focus {
         min-height: 32px !important;
     }
 
-    /* Force Playback Mode on Mobile */
-    .playback-controls-container {
+    /* Force Playback Mode on Mobile - override hidden class */
+    #playbackControls.playback-controls-container {
         display: block !important;
     }
 

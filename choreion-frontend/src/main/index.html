@@ -6,8 +6,8 @@
     <title>Choreion</title>
     <script src="https://unpkg.com/konva@10/konva.min.js"></script>
     <script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"></script>
-    <script type="module" src="../js/main.js"></script>
-    <link rel="stylesheet" href="../css/shared.css">
+    <script type="module" src="js/main.js"></script>
+    <link rel="stylesheet" href="css/shared.css">
 </head>
 <body>
 <div id="loadingScreen" class="loading-screen">
@@ -103,7 +103,7 @@
                 <option value="en">🇬🇧</option>
                 <option value="it">🇮🇹</option>
             </select>
-            <button id="adminBtn" class="hidden" data-i18n="header.admin">Admin</button>
+            <button id="adminBtn" class="hidden" data-i18n="header.admin">Admin area</button>
             <div class="header-user-info">
                 <span class="user-greeting"><strong id="userFullName"></strong></span>
                 <button class="btn-logout" id="logoutBtn" data-i18n="header.logout">Logout</button>
@@ -136,7 +136,7 @@
                     </div>
                 </div>
 
-                <div id="playbackControls" class="playback-controls-container">
+                <div id="playbackControls" class="playback-controls-container hidden">
                     <div class="playback-controls">
                         <div class="control-group">
                             <button id="playPause" data-i18n-title="controls.play">▶</button>
