@@ -37,6 +37,9 @@
   "controls.play": "Riproduci",
   "controls.pause": "Pausa",
   "controls.stop": "Stop",
+  "controls.zoomIn": "Ingrandisci",
+  "controls.zoomOut": "Riduci",
+  "controls.resetZoom": "Ripristina Zoom",
   "controls.bpm": "BPM:",
   "controls.step": "Passo:",
 

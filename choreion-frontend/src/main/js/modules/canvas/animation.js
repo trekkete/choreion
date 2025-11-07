@@ -20,6 +20,7 @@ import {
 } from '../state.js';
 import { getLayer } from './stage.js';
 import { resetPositions } from './person.js';
+import { t } from '../../i18n/i18n.js';
 
 /**
  * Toggle play/pause animation
@@ -30,7 +31,11 @@ export function togglePlayPause() {
 
     const btn = document.getElementById('playPause');
     if (btn) {
-        btn.textContent = isPlaying ? '⏸ Pause' : '▶ Play';
+        const translationKey = isPlaying ? 'controls.pause' : 'controls.play';
+        const icon = isPlaying ? '⏸' : '▶';
+        btn.textContent = icon;
+        btn.setAttribute('data-i18n-title', translationKey);
+        btn.setAttribute('title', t(translationKey));
     }
 
     if (isPlaying) {
@@ -54,7 +59,11 @@ export function stopAnimation() {
     const timeDisplay = document.getElementById('timeDisplay');
     const totalSteps = getCurrentChoreographySteps();
 
-    if (playPauseBtn) playPauseBtn.textContent = '▶ Play';
+    if (playPauseBtn) {
+        playPauseBtn.textContent = '▶';
+        playPauseBtn.setAttribute('data-i18n-title', 'controls.play');
+        playPauseBtn.setAttribute('title', t('controls.play'));
+    }
     if (timeDisplay) timeDisplay.textContent = `0 / ${totalSteps}`;
 
     resetPositions();

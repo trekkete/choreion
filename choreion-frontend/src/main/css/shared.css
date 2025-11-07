@@ -295,10 +295,24 @@ body {
     justify-content: center;
     flex: 1;
     padding: 1em;
+    position: relative;
+    overflow: hidden;
+}
+
+.canvas-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 10px 15px rgba(255, 255, 255, 1);
+    border-radius: 8px;
 }
 
 #container {
-    border: 2px solid #333;
+    position: relative;
 }
 
 .sidebar {
@@ -857,11 +871,6 @@ select:focus {
     /* Hide mode toggle on mobile (force playback mode) */
     #toggleMode {
         display: none !important;
-    }
-
-    /* Canvas Wrapper - Minimal Padding */
-    .canvas-wrapper {
-        padding: 5px;
     }
 
     #container {

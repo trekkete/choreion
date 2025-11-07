@@ -95,7 +95,7 @@
             <h1>Choreion</h1>
             <div class="header-project-info">
                 <span id="currentProjectName" class="project-title"></span>
-                <button id="switchProjectBtn" class="btn-small" data-i18n="project.switch">📁 Switch</button>
+                <button id="switchProjectBtn" class="btn-small" data-i18n-title="project.switch">📁</button>
             </div>
         </div>
         <div class="header-controls">
@@ -126,10 +126,10 @@
 
                 <div id="designControls" class="playback-controls">
                     <div class="control-group">
-                        <button id="toggleSnapping">🧲 <span data-i18n="controls.snapToGrid.on">Snap to Grid: ON</span></button>
+                        <button id="toggleSnapping" data-i18n-title="controls.snapToGrid.on">🧲</button>
                     </div>
                     <div class="control-group">
-                        <button id="deleteLastStep">⬅️ <span data-i18n="controls.deleteLastStep">Delete Last Step</span></button>
+                        <button id="deleteLastStep" data-i18n-title="controls.deleteLastStep">⬅️</button>
                     </div>
                     <div class="control-group">
                         <button class="btn-danger" id="clearAll" data-i18n="controls.clearRoutes">Clear Routes</button>
@@ -139,11 +139,13 @@
                 <div id="playbackControls" class="playback-controls-container">
                     <div class="playback-controls">
                         <div class="control-group">
-                            <button id="playPause">▶ <span data-i18n="controls.play">Play</span></button>
-                            <button id="stop">⏹ <span data-i18n="controls.stop">Stop</span></button>
+                            <button id="playPause" data-i18n-title="controls.play">▶</button>
+                            <button id="stop" data-i18n-title="controls.stop">⏹</button>
                         </div>
                         <div class="control-group">
-                            <button id="resetPositions" data-i18n="controls.resetPositions">Reset Positions</button>
+                            <button id="zoomIn" data-i18n-title="controls.zoomIn">🔍+</button>
+                            <button id="zoomOut" data-i18n-title="controls.zoomOut">🔍-</button>
+                            <button id="resetZoom" data-i18n-title="controls.resetZoom">⚡</button>
                         </div>
                         <div class="control-group">
                             <label data-i18n="controls.bpm">BPM:</label>
@@ -181,8 +183,8 @@
                 </div>
 
                 <div class="form-row">
-                    <button class="btn-success" id="saveChoreography" style="flex: 1;">💾 <span data-i18n="choreography.save">Save</span></button>
-                    <button class="btn-danger btn-small" id="deleteChoreography">🗑️ <span data-i18n="choreography.delete">Delete</span></button>
+                    <button class="btn-success" id="saveChoreography" style="flex: 1;" data-i18n-title="choreography.save">💾</button>
+                    <button class="btn-danger btn-small" id="deleteChoreography" data-i18n-title="choreography.delete">🗑️</button>
                 </div>
 
                 <div id="statusMessage" class="status"></div>
@@ -213,7 +215,7 @@
                         <label data-i18n="people.add.color">Color:</label>
                         <input type="color" id="newPersonColor" value="#3498db">
                     </div>
-                    <button class="btn-success" id="addPerson" style="width: 100%;">➕ <span data-i18n="people.add.button">Add Person</span></button>
+                    <button class="btn-success" id="addPerson" style="width: 100%;" data-i18n-title="people.add.button">➕</button>
                 </div>
 
                 <div class="section-title" data-i18n="people.list.title">People (Click to design route)</div>
@@ -271,7 +273,7 @@
                         <option value="ROLE_ADMIN" data-i18n="admin.role.admin">Admin</option>
                     </select>
                 </div>
-                <button class="btn-success" id="createUserBtn">➕ <span data-i18n="admin.users.create.button">Create User</span></button>
+                <button class="btn-success" id="createUserBtn" data-i18n-title="admin.users.create.button">➕</button>
                 <div id="adminCreateStatus" class="status"></div>
             </div>
 
@@ -318,7 +320,7 @@
                         <span data-i18n="admin.mappings.primary">Set as Primary Mapping</span>
                     </label>
                 </div>
-                <button class="btn-success" id="createMappingBtn">➕ <span data-i18n="admin.mappings.create.button">Create Mapping</span></button>
+                <button class="btn-success" id="createMappingBtn" data-i18n-title="admin.mappings.create.button">➕</button>
                 <div id="adminMappingStatus" class="status"></div>
             </div>
 

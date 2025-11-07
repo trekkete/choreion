@@ -34,10 +34,9 @@ export function getResponsiveGridSize() {
     let targetSize;
 
     if (isMobile()) {
-        // Mobile: Use viewport width minus padding, make it square
-        const availableWidth = width - (MOBILE_PADDING * 2);
-        const availableHeight = height - 300; // Reserve space for header/controls
-        targetSize = Math.min(availableWidth, availableHeight, 600); // Max 600px on mobile
+        // Mobile: Use a larger size since we'll support zoom and pan
+        // Keep closer to default size for better readability
+        targetSize = DEFAULT_GRID_SIZE * 0.9; // 720px - scale less aggressively
     } else if (isTablet()) {
         // Tablet: Use 70% of available space or 800px max
         const availableWidth = (width * 0.7) - (TABLET_PADDING * 2);

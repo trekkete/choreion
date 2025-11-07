@@ -16,7 +16,7 @@ import { showAdminPanel, hideAdminPanel, createNewUser, loadAdminMappingData, on
 import { showStatus } from "./modules/ui/statusUI.js";
 import { showLoginScreen, showProjectSelection, showApp, isMobile } from "./modules/utils/screenUtils.js";
 import { snapToGrid } from "./modules/utils/gridUtils.js";
-import { initializeStage, getStage, getLayer, getGridLayer } from "./modules/canvas/stage.js";
+import { initializeStage, getStage, getLayer, getGridLayer, zoomIn, zoomOut, resetZoom, setPanEnabled } from "./modules/canvas/stage.js";
 import { drawGrid } from "./modules/canvas/grid.js";
 import { createPerson, createPeopleFromData, addPersonToCanvas, removePersonFromCanvas, resetPositions } from "./modules/canvas/person.js";
 import { redrawRoutes, clearRoute, clearAllRoutes } from "./modules/canvas/routes.js";
@@ -163,6 +163,11 @@ function initializeApp() {
 
     if (currentMode === 'playback' && info) {
         info.innerHTML = `<strong data-i18n="mode.playback">${t('mode.playback')}:</strong> <span data-i18n="mode.playback.info">${t('mode.playback.info')}</span>`;
+        // Enable panning for playback mode (default on mobile)
+        setPanEnabled(true);
+    } else {
+        // Disable panning for design mode
+        setPanEnabled(false);
     }
 
     initializeFromBackend();
@@ -221,7 +226,8 @@ function toggleSnapping() {
     const btn = document.getElementById('toggleSnapping');
     if (btn) {
         const translationKey = enabled ? 'controls.snapToGrid.on' : 'controls.snapToGrid.off';
-        btn.innerHTML = `🧲 <span data-i18n="${translationKey}">${t(translationKey)}</span>`;
+        btn.setAttribute('data-i18n-title', translationKey);
+        btn.setAttribute('title', t(translationKey));
     }
 }
 
@@ -262,11 +268,16 @@ function toggleMode() {
     const designControls = document.getElementById('designControls');
 
     if (newMode === 'playback') {
-        if (btn) btn.setAttribute('data-i18n', 'button.switch.design');
-        if (btn) btn.textContent = t('button.switch.design');
+        if (btn) {
+            btn.setAttribute('data-i18n', 'button.switch.design');
+            btn.textContent = t('button.switch.design');
+        }
         if (info) info.innerHTML = `<strong data-i18n="mode.playback">${t('mode.playback')}:</strong> <span data-i18n="mode.playback.info">${t('mode.playback.info')}</span>`;
         if (playbackControls) playbackControls.classList.remove('hidden');
         if (designControls) designControls.classList.add('hidden');
+
+        // Enable panning in playback mode
+        setPanEnabled(true);
 
         const layer = getLayer();
         if (layer) {
@@ -275,11 +286,17 @@ function toggleMode() {
             layer.batchDraw();
         }
     } else {
-        if (btn) btn.setAttribute('data-i18n', 'button.switch.playback');
-        if (btn) btn.textContent = t('button.switch.playback');
+        if (btn) {
+            btn.setAttribute('data-i18n', 'button.switch.playback');
+            btn.textContent = t('button.switch.playback');
+        }
         if (info) info.innerHTML = `<strong data-i18n="mode.design">${t('mode.design')}:</strong> <span data-i18n="mode.design.info">${t('mode.design.info')}</span>`;
         if (playbackControls) playbackControls.classList.add('hidden');
         if (designControls) designControls.classList.remove('hidden');
+
+        // Disable panning in design mode to allow clicking for route points
+        setPanEnabled(false);
+
         stopAnimation();
         redrawRoutes();
     }
@@ -377,6 +394,11 @@ function setupEventListeners() {
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
     document.getElementById('toggleSnapping')?.addEventListener('click', toggleSnapping);
     document.getElementById('deleteLastStep')?.addEventListener('click', deleteLastStep);
+
+    // Zoom control event listeners
+    document.getElementById('zoomIn')?.addEventListener('click', zoomIn);
+    document.getElementById('zoomOut')?.addEventListener('click', zoomOut);
+    document.getElementById('resetZoom')?.addEventListener('click', resetZoom);
 
     // Person list event listeners
     document.getElementById('personList')?.addEventListener('click', (event) => {
