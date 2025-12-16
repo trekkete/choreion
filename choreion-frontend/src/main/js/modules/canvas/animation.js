@@ -32,8 +32,8 @@ export function togglePlayPause() {
     const btn = document.getElementById('playPause');
     if (btn) {
         const translationKey = isPlaying ? 'controls.pause' : 'controls.play';
-        const icon = isPlaying ? '⏸' : '▶';
-        btn.textContent = icon;
+        const icon = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+        btn.innerHTML = icon;
         btn.setAttribute('data-i18n-title', translationKey);
         btn.setAttribute('title', t(translationKey));
     }
@@ -60,7 +60,7 @@ export function stopAnimation() {
     const totalSteps = getCurrentChoreographySteps();
 
     if (playPauseBtn) {
-        playPauseBtn.textContent = '▶';
+        playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
         playPauseBtn.setAttribute('data-i18n-title', 'controls.play');
         playPauseBtn.setAttribute('title', t('controls.play'));
     }
