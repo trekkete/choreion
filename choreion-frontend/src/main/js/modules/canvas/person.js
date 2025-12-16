@@ -118,7 +118,7 @@ export function resetPositions() {
         const routes = getRouteForPerson(person.id) || {};
         const startPos = routes && routes[0]
             ? routes[0]
-            : { x: -100, y: -100 };
+            : { x: -2000, y: -2000 };
 
         person.circle.x(startPos.x);
         person.circle.y(startPos.y);

@@ -8,12 +8,13 @@
     <script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"></script>
     <script type="module" src="js/main.js"></script>
     <link rel="stylesheet" href="css/shared.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
 <div id="loadingScreen" class="loading-screen">
     <div class="loading-content">
         <div class="loading-logo">
-            <div class="logo-placeholder">🎭</div>
+            <div class="logo-placeholder"><i class="fas fa-theater-masks"></i></div>
         </div>
         <h1 class="loading-title">Choreion</h1>
         <div class="loading-spinner">
@@ -28,12 +29,12 @@
     <div class="login-box">
         <div>
             <select id="loginLanguageSelector" class="language-selector general-pages-selector">
-                <option value="en">🇬🇧</option>
-                <option value="it">🇮🇹</option>
+                <option value="en">EN</option>
+                <option value="it">IT</option>
             </select>
         </div>
         <div class="login-header">
-            <h1>🎭 <span data-i18n="login.title">Choreography Tool</span></h1>
+            <h1><i class="fas fa-theater-masks"></i> <span data-i18n="login.title">Choreography Tool</span></h1>
             <p data-i18n="login.subtitle">Sign in to create and manage choreographies</p>
         </div>
 
@@ -58,12 +59,12 @@
         <div class="general-pages-selector" style="display: flex; gap: 10px;">
             <button id="projectAdminBtn" class="hidden" data-i18n="header.admin">Admin</button>
             <select id="projectLanguageSelector" class="language-selector">
-                <option value="en">🇬🇧</option>
-                <option value="it">🇮🇹</option>
+                <option value="en">EN</option>
+                <option value="it">IT</option>
             </select>
         </div>
         <div class="login-header">
-            <h1>📁 <span data-i18n="project.select.title">Select a Project</span></h1>
+            <h1><i class="fas fa-folder"></i> <span data-i18n="project.select.title">Select a Project</span></h1>
             <p data-i18n="project.select.subtitle">Choose a project to work on or create a new one</p>
         </div>
 
@@ -73,14 +74,14 @@
         <div class="form-group">
             <input type="text" id="newProjectDescription" data-i18n-placeholder="project.new.description" placeholder="Description (optional)...">
         </div>
-        <button class="btn-success" id="createProjectBtn" style="width: 100%; margin-bottom: 20px;" data-i18n="project.create">➕ Create New Project</button>
+        <button class="btn-success" id="createProjectBtn" style="width: 100%; margin-bottom: 20px;" data-i18n="project.create"><i class="fas fa-plus"></i> Create New Project</button>
 
         <div id="projectError" class="status error" style="display:none;"></div>
 
         <div class="section-title" data-i18n="project.list.title">Your Projects</div>
         <div id="projectList" class="choreography-list">
             <div class="empty-state">
-                <div class="empty-state-icon">📁</div>
+                <div class="empty-state-icon"><i class="fas fa-folder"></i></div>
                 <div data-i18n="project.list.empty">No projects yet</div>
                 <div style="font-size: 12px;" data-i18n="project.list.empty.hint">Create your first project to get started</div>
             </div>
@@ -95,13 +96,13 @@
             <h1>Choreion</h1>
             <div class="header-project-info">
                 <span id="currentProjectName" class="project-title"></span>
-                <button id="switchProjectBtn" class="btn-small" data-i18n-title="project.switch">📁</button>
+                <button id="switchProjectBtn" class="btn-small" data-i18n-title="project.switch"><i class="fas fa-folder"></i></button>
             </div>
         </div>
         <div class="header-controls">
             <select id="languageSelector" class="language-selector" style="margin-right: 10px;">
-                <option value="en">🇬🇧</option>
-                <option value="it">🇮🇹</option>
+                <option value="en">EN</option>
+                <option value="it">IT</option>
             </select>
             <button id="adminBtn" class="hidden" data-i18n="header.admin">Admin area</button>
             <div class="header-user-info">
@@ -113,58 +114,61 @@
 
     <div class="main-content">
         <div class="canvas-section">
-            <div class="canvas-controls">
-                <div class="mode-info" id="modeInfo">
-                    <strong data-i18n="mode.design">Design Mode:</strong> <span data-i18n="mode.design.info">Select a person from the sidebar and click on the grid to create their route.</span>
-                </div>
-
-                <div class="playback-controls" style="margin-bottom: 10px;">
-                    <div class="control-group">
-                        <button id="toggleMode" data-i18n="button.switch.playback">Switch to Playback Mode</button>
-                    </div>
-                </div>
-
-                <div id="designControls" class="playback-controls">
-                    <div class="control-group">
-                        <button id="toggleSnapping" data-i18n-title="controls.snapToGrid.on">🧲</button>
-                    </div>
-                    <div class="control-group">
-                        <button id="deleteLastStep" data-i18n-title="controls.deleteLastStep">⬅️</button>
-                    </div>
-                    <div class="control-group">
-                        <button class="btn-danger" id="clearAll" data-i18n="controls.clearRoutes">Clear Routes</button>
-                    </div>
-                </div>
-
-                <div id="playbackControls" class="playback-controls-container hidden">
-                    <div class="playback-controls">
-                        <div class="control-group">
-                            <button id="playPause" data-i18n-title="controls.play">▶</button>
-                            <button id="stop" data-i18n-title="controls.stop">⏹</button>
-                        </div>
-                        <div class="control-group">
-                            <button id="zoomIn" data-i18n-title="controls.zoomIn">🔍+</button>
-                            <button id="zoomOut" data-i18n-title="controls.zoomOut">🔍-</button>
-                            <button id="resetZoom" data-i18n-title="controls.resetZoom">⚡</button>
-                        </div>
-                        <div class="control-group">
-                            <label data-i18n="controls.bpm">BPM:</label>
-                            <input type="number" id="bpm" min="30" max="300" value="165" style="width: 100px;">
-                        </div>
-                        <div class="control-group">
-                            <label data-i18n="controls.step">Step:</label>
-                            <span id="timeDisplay">0 / 8</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="canvas-wrapper">
                 <div id="container"></div>
             </div>
         </div>
 
         <div class="sidebar">
+            <div class="mode-info" id="modeInfo">
+                <strong data-i18n="mode.design">Design Mode:</strong> <span data-i18n="mode.design.info">Select a person from the sidebar and click on the grid to create their route.</span>
+            </div>
+            <div class="canvas-controls">
+                <div class="canvas-controls-container">
+                    <div class="playback-controls" style="margin-bottom: 10px;">
+                        <div class="control-group">
+                            <button id="toggleMode" data-i18n-title="button.switch.playback"><i class="fas fa-eye"></i></button>
+                        </div>
+                        <div>|</div>
+                        <div class="control-group">
+                            <button id="zoomIn" data-i18n-title="controls.zoomIn"><i class="fas fa-search-plus"></i></button>
+                            <button id="zoomOut" data-i18n-title="controls.zoomOut"><i class="fas fa-search-minus"></i></button>
+                            <button id="resetZoom" data-i18n-title="controls.resetZoom"><i class="fas fa-bolt"></i></button>
+                        </div>
+                    </div>
+
+                    <div id="designControls" class="playback-controls">
+                        <div class="control-group">
+                            <button id="toggleSnapping" data-i18n-title="controls.snapToGrid.on"><i class="fas fa-magnet"></i></button>
+                        </div>
+                        <div class="control-group">
+                            <button id="deleteLastStep" data-i18n-title="controls.deleteLastStep"><i class="fa-solid fa-delete-left"></i></i></button>
+                        </div>
+                        <div class="control-group">
+                            <button class="btn-danger" id="clearAll" data-i18n-title="controls.clearRoutes"><i class="fa-solid fa-ban"></i></button>
+                        </div>
+                    </div>
+
+                    <div id="playbackControls" class="playback-controls-container hidden">
+                        <div class="playback-controls">
+                            <div class="control-group">
+                                <button id="playPause" data-i18n-title="controls.play"><i class="fas fa-play"></i></button>
+                                <button id="stop" data-i18n-title="controls.stop"><i class="fas fa-stop"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="playback-info">
+                    <div class="control-group">
+                        <label data-i18n="controls.bpm">BPM:</label>
+                        <input type="number" id="bpm" min="30" max="300" value="165" style="width: 100px;">
+                    </div>
+                    <div class="control-group">
+                        <label data-i18n="controls.step">Step:</label>
+                        <span id="timeDisplay">0 / 8</span>
+                    </div>
+                </div>
+            </div>
             <div class="tabs">
                 <button class="tab active" data-tab="choreographies" data-i18n="choreography.title">Choreographies</button>
                 <button class="tab" data-tab="people" data-i18n="people.title">People</button>
@@ -183,8 +187,8 @@
                 </div>
 
                 <div class="form-row">
-                    <button class="btn-success" id="saveChoreography" style="flex: 1;" data-i18n-title="choreography.save">💾</button>
-                    <button class="btn-danger btn-small" id="deleteChoreography" data-i18n-title="choreography.delete">🗑️</button>
+                    <button class="btn-success" id="saveChoreography" style="flex: 1;" data-i18n-title="choreography.save"><i class="fas fa-save"></i></button>
+                    <button class="btn-danger btn-small" id="deleteChoreography" data-i18n-title="choreography.delete"><i class="fas fa-trash"></i></button>
                 </div>
 
                 <div id="statusMessage" class="status"></div>
@@ -192,7 +196,7 @@
                 <div class="section-title" style="margin-top: 20px;" data-i18n="choreography.list.title">Saved Choreographies</div>
                 <div id="choreographyList" class="choreography-list">
                     <div class="empty-state">
-                        <div class="empty-state-icon">🎭</div>
+                        <div class="empty-state-icon"><i class="fas fa-theater-masks"></i></div>
                         <div data-i18n="choreography.list.empty">No choreographies yet</div>
                         <div style="font-size: 12px;" data-i18n="choreography.list.empty.hint">Create one by designing routes and clicking Save</div>
                     </div>
@@ -215,7 +219,7 @@
                         <label data-i18n="people.add.color">Color:</label>
                         <input type="color" id="newPersonColor" value="#3498db">
                     </div>
-                    <button class="btn-success" id="addPerson" style="width: 100%;" data-i18n-title="people.add.button">➕</button>
+                    <button class="btn-success" id="addPerson" style="width: 100%;" data-i18n-title="people.add.button"><i class="fas fa-plus"></i></button>
                 </div>
 
                 <div class="section-title" data-i18n="people.list.title">People (Click to design route)</div>
@@ -273,7 +277,7 @@
                         <option value="ROLE_ADMIN" data-i18n="admin.role.admin">Admin</option>
                     </select>
                 </div>
-                <button class="btn-success" id="createUserBtn" data-i18n-title="admin.users.create.button">➕</button>
+                <button class="btn-success" id="createUserBtn" data-i18n-title="admin.users.create.button"><i class="fas fa-plus"></i></button>
                 <div id="adminCreateStatus" class="status"></div>
             </div>
 
@@ -320,7 +324,7 @@
                         <span data-i18n="admin.mappings.primary">Set as Primary Mapping</span>
                     </label>
                 </div>
-                <button class="btn-success" id="createMappingBtn" data-i18n-title="admin.mappings.create.button">➕</button>
+                <button class="btn-success" id="createMappingBtn" data-i18n-title="admin.mappings.create.button"><i class="fas fa-plus"></i></button>
                 <div id="adminMappingStatus" class="status"></div>
             </div>
 

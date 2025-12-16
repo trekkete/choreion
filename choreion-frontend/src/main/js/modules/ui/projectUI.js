@@ -32,7 +32,7 @@ export function renderProjectList() {
             : 'No projects available. Contact an administrator to get access.';
         container.innerHTML = `
             <div class="empty-state">
-                <div class="empty-state-icon">📁</div>
+                <div class="empty-state-icon"><i class="fas fa-folder"></i></div>
                 <div>No projects yet</div>
                 <div style="font-size: 12px;">${message}</div>
             </div>

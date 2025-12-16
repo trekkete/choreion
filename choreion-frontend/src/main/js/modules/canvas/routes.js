@@ -4,7 +4,7 @@
  */
 
 import { getPeople, getSelectedPerson, getRoutes, setRouteForPerson } from '../state.js';
-import { getLayer, getGridLayer } from './stage.js';
+import { getLayer, getGridLayer, getCurrentGridSize } from './stage.js';
 
 /**
  * Redraw all routes on the canvas
@@ -96,6 +96,20 @@ export function redrawRoutes(snapped = null) {
 
         // Draw preview point if snapped position provided
         if (snapped) {
+            layer.add(new Konva.Line({
+                points: [snapped.x, 0, snapped.x, getCurrentGridSize()],
+                stroke: '#f0f',
+                strokeWidth: 1,
+                name: 'route-line',
+            }));
+
+            layer.add(new Konva.Line({
+                points: [0, snapped.y, getCurrentGridSize(), snapped.y],
+                stroke: '#f0f',
+                strokeWidth: 1,
+                name: 'route-line',
+            }));
+
             const circle = new Konva.Circle({
                 x: snapped.x,
                 y: snapped.y,
@@ -157,7 +171,7 @@ function resetPositions() {
     people.forEach((person) => {
         const startPos = routes[person.id] && routes[person.id][0]
             ? routes[person.id][0]
-            : { x: -100, y: -100 };
+            : { x: -2000, y: -2000 };
 
         person.circle.x(startPos.x);
         person.circle.y(startPos.y);

@@ -31,17 +31,29 @@ fi
 
 echo "✅ Docker is running"
 
-# Stop existing containers if any
-echo "🛑 Stopping existing containers..."
-docker-compose down 2>/dev/null || true
+# Check if containers are already running
+RUNNING_CONTAINERS=$(docker-compose ps -q 2>/dev/null | wc -l)
 
-# Build and start services
-echo "🏗️  Building and starting services..."
-docker-compose up -d --build
+if [ "$RUNNING_CONTAINERS" -gt 0 ]; then
+    echo "🔄 Containers already running, refreshing frontend only..."
+    docker-compose up -d --build --no-deps frontend
 
-# Wait for services to be healthy
-echo "⏳ Waiting for services to be healthy..."
-sleep 10
+    # Wait for services to be healthy
+    echo "⏳ Waiting for services to be healthy..."
+    sleep 2
+else
+    # Stop existing containers if any
+    echo "🛑 Stopping existing containers..."
+    docker-compose down 2>/dev/null || true
+
+    # Build and start services
+    echo "🏗️  Building and starting services..."
+    docker-compose up -d --build
+
+    # Wait for services to be healthy
+    echo "⏳ Waiting for services to be healthy..."
+    sleep 10
+fi
 
 # Check service status
 echo ""

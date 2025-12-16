@@ -225,9 +225,7 @@ function toggleSnapping() {
     const enabled = State.toggleSnapToGrid();
     const btn = document.getElementById('toggleSnapping');
     if (btn) {
-        const translationKey = enabled ? 'controls.snapToGrid.on' : 'controls.snapToGrid.off';
-        btn.setAttribute('data-i18n-title', translationKey);
-        btn.setAttribute('title', t(translationKey));
+        btn.innerHTML = enabled ? '<i class="fas fa-link-slash"></i>' : '<i class="fas fa-magnet"></i>';
     }
 }
 
@@ -269,8 +267,8 @@ function toggleMode() {
 
     if (newMode === 'playback') {
         if (btn) {
-            btn.setAttribute('data-i18n', 'button.switch.design');
-            btn.textContent = t('button.switch.design');
+            btn.setAttribute('data-i18n-title', 'button.switch.design');
+            btn.innerHTML = '<i class="fas fa-edit"></i>';
         }
         if (info) info.innerHTML = `<strong data-i18n="mode.playback">${t('mode.playback')}:</strong> <span data-i18n="mode.playback.info">${t('mode.playback.info')}</span>`;
         if (playbackControls) playbackControls.classList.remove('hidden');
@@ -287,8 +285,8 @@ function toggleMode() {
         }
     } else {
         if (btn) {
-            btn.setAttribute('data-i18n', 'button.switch.playback');
-            btn.textContent = t('button.switch.playback');
+            btn.setAttribute('data-i18n-title', 'button.switch.playback');
+            btn.innerHTML = '<i class="fas fa-eye"></i>';
         }
         if (info) info.innerHTML = `<strong data-i18n="mode.design">${t('mode.design')}:</strong> <span data-i18n="mode.design.info">${t('mode.design.info')}</span>`;
         if (playbackControls) playbackControls.classList.add('hidden');

@@ -44,7 +44,7 @@ export function renderChoreographyList() {
     if (choreographies.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-                <div class="empty-state-icon">🎭</div>
+                <div class="empty-state-icon"><i class="fas fa-theater-masks"></i></div>
                 <div>No choreographies yet</div>
                 <div style="font-size: 12px;">Create one by designing routes and clicking Save</div>
             </div>
