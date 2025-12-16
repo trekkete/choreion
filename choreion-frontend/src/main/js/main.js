@@ -308,13 +308,28 @@ function setupEventListeners() {
 
     // Canvas click - add route point
     stage.on('click', (e) => {
-        if (State.getMode() !== 'design') return;
+        if (State.getMode() !== 'design') {
+            if (stepCounterText) {
+                stepCounterText.destroy();
+                stepCounterText = null;
+                layer.batchDraw();
+            }
+        }
 
         const selectedPerson = State.getSelectedPerson();
-        if (!selectedPerson) return;
+        if (!selectedPerson) {
+            if (stepCounterText) {
+                stepCounterText.destroy();
+                stepCounterText = null;
+                layer.batchDraw();
+            }
+            return;
+        }
+
+        if (State.getMode() !== 'design') return;
 
         const routes = State.getRoutes();
-        const currentSteps = routes[selectedPerson.id] ? routes[selectedPerson.id].length : 0;
+        var currentSteps = routes[selectedPerson.id] ? routes[selectedPerson.id].length : 0;
         const maxSteps = State.getCurrentChoreographySteps();
 
         if (currentSteps >= maxSteps) {
@@ -325,9 +340,27 @@ function setupEventListeners() {
         const pos = stage.getPointerPosition();
         const snappedX = snapToGrid(pos.x);
         const snappedY = snapToGrid(pos.y);
+        currentSteps += 1;
 
         routes[selectedPerson.id].push({ x: snappedX, y: snappedY });
         State.setHasUnsavedChanges(true);
+
+        if (stepCounterText) {
+            stepCounterText.destroy();
+        }
+
+        stepCounterText = new Konva.Text({
+            x: snappedX + 15,
+            y: snappedY - 15,
+            text: `${currentSteps}/${maxSteps}`,
+            fontSize: 16,
+            fontStyle: 'bold',
+            fill: currentSteps >= maxSteps ? '#e74c3c' : '#2ecc71',
+            stroke: '#fff',
+            strokeWidth: 1
+        });
+
+        layer.add(stepCounterText);
         redrawRoutes();
     });
 

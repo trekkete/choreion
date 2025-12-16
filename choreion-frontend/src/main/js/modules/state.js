@@ -250,7 +250,7 @@ export function getHasUnsavedChanges() {
 }
 
 // ============= Grid Settings State =============
-let snapToGridEnabled = true;
+let snapToGridEnabled = false;
 
 export function setSnapToGrid(enabled) {
     snapToGridEnabled = enabled;

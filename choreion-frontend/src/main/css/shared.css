@@ -362,7 +362,7 @@ body {
 }
 
 .tab.active {
-    background: white;
+    background: #e3f2fd;
     color: #2c3e50;
     font-weight: bold;
 }
@@ -528,8 +528,18 @@ button:disabled {
     background: #e74c3c;
 }
 
+.canvas-controls .btn-danger {
+    color: #e74c3c;
+    border-color: #e74c3c;
+}
+
 .btn-danger:hover {
     background: #c0392b;
+}
+
+.canvas-controls .btn-danger:hover {
+    color: #992e23;
+    border-color: #992e23;
 }
 
 .btn-warning {

@@ -357,6 +357,7 @@ async function deleteMappingFromAdmin(mappingId) {
  */
 export function showAdminPanel() {
     document.getElementById('appContainer')?.classList.add('hidden');
+    document.getElementById('projectSelectionScreen')?.classList.add('hidden');
     document.getElementById('adminContainer')?.classList.remove('hidden');
 
     const user = getCurrentUser();
