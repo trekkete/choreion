@@ -29,7 +29,7 @@ export function applyRoleBasedUI() {
     }
 
     // Hide/show toggle mode button for USER role
-    const toggleModeBtn = document.getElementById('toggleMode');
+    const toggleModeBtn = document.getElementById('modeContainer');
     if (toggleModeBtn) {
         if (!isDesigner) {
             toggleModeBtn.classList.add('hidden');

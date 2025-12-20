@@ -213,7 +213,7 @@ body {
 .header {
     background: #2c3e50;
     color: white;
-    padding: 15px 20px;
+    padding: 5px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     display: flex;
     justify-content: space-between;
@@ -222,8 +222,8 @@ body {
 
 .header-left {
     display: flex;
-    align-items: center;
-    gap: 20px;
+    flex-direction: row;
+    gap: 10px;
 }
 
 .header h1 {
@@ -315,6 +315,14 @@ body {
     overflow: hidden;
 }
 
+.canvas-buttons {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  flex-direction: column;
+}
+
 .canvas-wrapper::after {
     content: '';
     position: absolute;
@@ -342,7 +350,8 @@ body {
 .tabs {
     display: flex;
     background: #34495e;
-    border-bottom: 2px solid #2c3e50;
+    border: 2px solid #2c3e50;
+    border-radius: 4px;
 }
 
 .tab {
@@ -487,28 +496,28 @@ button {
     font-weight: 500;
 }
 
-.canvas-controls button {
+.canvas-controls button, .canvas-buttons button {
     padding: 0;
-    font-size: 14px;
+    font-size: 20px;
     cursor: pointer;
     border: 1px solid #3498db;
     border-radius: 4px;
-    background: transparent;
+    background: white;
     color: #3498db;
     transition: color 0.3s, border-color 0.3s;
     font-weight: 500;
-    height: 30px;
-    width: 30px;
+    min-height: 50px;
+    min-width: 50px;
 }
 
 button:hover {
     background: #2980b9;
 }
 
-.canvas-controls button:hover {
+.canvas-controls button:hover, .canvas-buttons button:hover {
     color: #1a5984;
     border-color: #1a5984;
-    background: transparent;
+    background: white;
 }
 
 button:disabled {
@@ -818,7 +827,6 @@ select:focus {
 
     /* Header - Simplified */
     .header {
-        padding: 10px 15px;
         flex-wrap: wrap;
     }
 
@@ -827,18 +835,20 @@ select:focus {
     }
 
     .header-left {
-        gap: 10px;
-        flex: 1;
+        flex-direction: column;
+        gap: 0px;
     }
 
     .header-project-info {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
+        align-items: center;
+        display: flex;
+        gap: 10px;
     }
 
     .project-title {
-        font-size: 12px;
+        font-size: 14px;
+        max-width: 33vw;
+        overflow-wrap: break-word;
     }
 
     .btn-small {
@@ -848,11 +858,13 @@ select:focus {
 
     .header-controls {
         gap: 5px;
+        flex-direction: column;
+        align-items: flex-end;
     }
 
     .header-user-info {
-        flex-direction: column;
-        align-items: flex-end;
+        flex-direction: row;
+        align-items: center;
         gap: 5px;
         margin-left: 5px;
     }
@@ -923,14 +935,6 @@ select:focus {
         border-width: 1px;
     }
 
-    /* Compact Buttons for Playback Controls */
-    #playbackControls button {
-        min-height: 36px;
-        min-width: auto;
-        padding: 6px 10px;
-        font-size: 13px;
-    }
-
     #resetPositions {
         min-height: 36px;
         padding: 6px 10px;
@@ -941,13 +945,19 @@ select:focus {
     button {
         min-height: 44px;
         min-width: 44px;
-        padding: 12px 16px;
         font-size: 15px;
+        padding: 12px 16px;
+    }
+
+    .header button {
+        min-height: 25px;
+        min-width: 44px;
+        padding: 4px;
     }
 
     .btn-small {
-        min-height: 36px;
-        min-width: 36px;
+        min-height: 25px;
+        min-width: 25px;
     }
 
     /* Form Inputs - Touch Optimized */
@@ -1085,7 +1095,8 @@ select:focus {
 
     /* Language Selector */
     .language-selector {
-        font-size: 20px;
+        font-size: 14px;
+        font-weight: bold;
     }
 
     .general-pages-selector {

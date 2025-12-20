@@ -94,16 +94,16 @@
     <div class="header">
         <div class="header-left">
             <h1>Choreion</h1>
-            <div class="header-project-info">
-                <span id="currentProjectName" class="project-title"></span>
-                <button id="switchProjectBtn" class="btn-small" data-i18n-title="project.switch"><i class="fas fa-folder"></i></button>
-            </div>
-        </div>
-        <div class="header-controls">
             <select id="languageSelector" class="language-selector" style="margin-right: 10px;">
                 <option value="en">EN</option>
                 <option value="it">IT</option>
             </select>
+        </div>
+        <div class="header-project-info">
+            <span id="currentProjectName" class="project-title"></span>
+            <button id="switchProjectBtn" class="btn-small" data-i18n-title="project.switch"><i class="fas fa-folder"></i></button>
+        </div>
+        <div class="header-controls">
             <button id="adminBtn" class="hidden" data-i18n="header.admin">Admin area</button>
             <div class="header-user-info">
                 <span class="user-greeting"><strong id="userFullName"></strong></span>
@@ -115,6 +115,11 @@
     <div class="main-content">
         <div class="canvas-section">
             <div class="canvas-wrapper">
+                <div class="control-group canvas-buttons">
+                    <button id="zoomIn" data-i18n-title="controls.zoomIn"><i class="fas fa-search-plus"></i></button>
+                    <button id="zoomOut" data-i18n-title="controls.zoomOut"><i class="fas fa-search-minus"></i></button>
+                    <button id="resetZoom" data-i18n-title="controls.resetZoom"><i class="fas fa-bolt"></i></button>
+                </div>
                 <div id="container"></div>
             </div>
         </div>
@@ -125,15 +130,9 @@
             </div>
             <div class="canvas-controls">
                 <div class="canvas-controls-container">
-                    <div class="playback-controls" style="margin-bottom: 10px;">
+                    <div id="modeContainer" class="playback-controls" style="margin-bottom: 10px;">
                         <div class="control-group">
                             <button id="toggleMode" data-i18n-title="button.switch.playback"><i class="fas fa-eye"></i></button>
-                        </div>
-                        <div>|</div>
-                        <div class="control-group">
-                            <button id="zoomIn" data-i18n-title="controls.zoomIn"><i class="fas fa-search-plus"></i></button>
-                            <button id="zoomOut" data-i18n-title="controls.zoomOut"><i class="fas fa-search-minus"></i></button>
-                            <button id="resetZoom" data-i18n-title="controls.resetZoom"><i class="fas fa-bolt"></i></button>
                         </div>
                     </div>
 
