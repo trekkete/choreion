@@ -140,6 +140,51 @@ export async function loadChoreographyFromItem(id) {
 }
 
 /**
+ * Create a new empty choreography and select it
+ */
+export async function newChoreography() {
+    const name = document.getElementById('choreographyName')?.value.trim();
+    const steps = parseInt(document.getElementById('choreographySteps')?.value);
+
+    if (!name) {
+        showStatus(t('status.choreography.error.name'), 'error');
+        return;
+    }
+
+    if (!steps || steps < 1) {
+        showStatus(t('status.choreography.error.steps'), 'error');
+        return;
+    }
+
+    const emptyRoutes = {};
+    getPeople().forEach(person => {
+        emptyRoutes[person.id] = [];
+    });
+
+    const choreographyData = {
+        id: null,
+        name,
+        steps,
+        routes: emptyRoutes
+    };
+
+    try {
+        const projectId = getCurrentProjectId();
+        const saved = await Api.saveChoreography(choreographyData, projectId);
+        setCurrentChoreographyId(saved.id);
+        setCurrentChoreographySteps(saved.steps);
+        setHasUnsavedChanges(false);
+
+        window.dispatchEvent(new CustomEvent('routes:clearAll', { detail: { confirm: false } }));
+        showStatus(t('status.choreography.saved'), 'success');
+        await loadChoreographyList();
+    } catch (error) {
+        console.error('Error creating choreography:', error);
+        showStatus(t('status.choreography.error.save'), 'error');
+    }
+}
+
+/**
  * Save current choreography
  */
 export async function saveChoreography() {

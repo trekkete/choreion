@@ -257,8 +257,7 @@ function setupZoomAndPan() {
     stage.on('touchend', function () {
         lastDist = 0;
         lastCenter = null;
-        // Re-enable dragging after pinch
-        stage.draggable(true);
+        stage.draggable(panEnabled);
     });
 
     // Mouse wheel zoom for desktop (useful for testing)
@@ -436,7 +435,10 @@ export function getCurrentZoom() {
  * Enable or disable panning
  * @param {boolean} enabled - Enable panning
  */
+let panEnabled = true;
+
 export function setPanEnabled(enabled) {
+    panEnabled = enabled;
     if (stage) {
         stage.draggable(enabled);
     }

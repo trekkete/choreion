@@ -10,8 +10,8 @@ import * as State from "./modules/state.js";
 import { initI18n, setLocale, t } from "./i18n/i18n.js";
 import { applyRoleBasedUI } from "./modules/ui/roleUI.js";
 import { loadProjectList, createNewProject, renderProjectList } from "./modules/ui/projectUI.js";
-import { loadChoreographyList, loadChoreographyFromItem, saveChoreography, deleteChoreography } from "./modules/ui/choreographyUI.js";
-import { renderPersonList, addPerson, removePerson, renderUserMappings } from "./modules/ui/personUI.js";
+import { loadChoreographyList, loadChoreographyFromItem, saveChoreography, deleteChoreography, newChoreography } from "./modules/ui/choreographyUI.js";
+import { renderPersonList, addPerson, removePerson, renderUserMappings, importPeopleFromCsv } from "./modules/ui/personUI.js";
 import { showAdminPanel, hideAdminPanel, createNewUser, loadAdminMappingData, onProjectChange, createAdminMapping } from "./modules/ui/adminUI.js";
 import { showStatus } from "./modules/ui/statusUI.js";
 import { showLoginScreen, showProjectSelection, showApp, isMobile } from "./modules/utils/screenUtils.js";
@@ -19,7 +19,7 @@ import { snapToGrid } from "./modules/utils/gridUtils.js";
 import { initializeStage, getStage, getLayer, getGridLayer, zoomIn, zoomOut, resetZoom, setPanEnabled } from "./modules/canvas/stage.js";
 import { drawGrid } from "./modules/canvas/grid.js";
 import { createPerson, createPeopleFromData, addPersonToCanvas, removePersonFromCanvas, resetPositions } from "./modules/canvas/person.js";
-import { redrawRoutes, clearRoute, clearAllRoutes } from "./modules/canvas/routes.js";
+import { redrawRoutes, clearRoute, clearAllRoutes, copyPersonRoute, computeCopiedRoute, drawRoutePreview, clearRoutePreview } from "./modules/canvas/routes.js";
 import { togglePlayPause, stopAnimation } from "./modules/canvas/animation.js";
 
 // Track step counter text
@@ -248,6 +248,96 @@ function deleteLastStep() {
     redrawRoutes();
 }
 
+// ============= Copy Route Modal =============
+
+let pickingStartingPoint = false;
+let copyStartingPoint = null;
+
+function openCopyRouteModal() {
+    const people = State.getPeople();
+    if (people.length < 2) {
+        showStatus(t('status.copyRoute.needTwoPeople'), 'error');
+        return;
+    }
+
+    const fromSelect = document.getElementById('copyRouteFrom');
+    const toSelect = document.getElementById('copyRouteTo');
+    if (!fromSelect || !toSelect) return;
+
+    fromSelect.innerHTML = '';
+    toSelect.innerHTML = '';
+    people.forEach(p => {
+        fromSelect.appendChild(new Option(p.name, p.id));
+        toSelect.appendChild(new Option(p.name, p.id));
+    });
+    if (people.length > 1) toSelect.selectedIndex = 1;
+
+    document.getElementById('mirrorHorizontal').checked = false;
+    document.getElementById('mirrorVertical').checked = false;
+    document.getElementById('mirrorModeGroup').style.display = 'none';
+    document.getElementById('mirrorModeRoute').checked = true;
+
+    copyStartingPoint = null;
+    document.getElementById('startingPointDisplay').setAttribute('data-i18n', 'copyRoute.startingPoint.none');
+    document.getElementById('startingPointDisplay').textContent = t('copyRoute.startingPoint.none');
+
+    document.getElementById('copyRouteModal').classList.remove('hidden');
+}
+
+function closeCopyRouteModal() {
+    clearRoutePreview();
+    copyStartingPoint = null;
+    document.getElementById('copyRouteModal').classList.add('hidden');
+}
+
+function confirmCopyRoute() {
+    const fromId = parseInt(document.getElementById('copyRouteFrom').value, 10);
+    const toId = parseInt(document.getElementById('copyRouteTo').value, 10);
+    const mirrorX = document.getElementById('mirrorHorizontal').checked;
+    const mirrorY = document.getElementById('mirrorVertical').checked;
+    const mirrorMode = document.querySelector('input[name="mirrorMode"]:checked')?.value || 'route';
+
+    if (fromId === toId) {
+        showStatus(t('status.copyRoute.samePersonError'), 'error');
+        return;
+    }
+
+    const success = copyPersonRoute(fromId, toId, mirrorX, mirrorY, mirrorMode, copyStartingPoint);
+    if (success) {
+        State.setHasUnsavedChanges(true);
+        redrawRoutes();
+        showStatus(t('status.copyRoute.success'), 'success');
+        closeCopyRouteModal();
+    } else {
+        showStatus(t('status.copyRoute.emptySource'), 'error');
+    }
+}
+
+function startPickStartingPoint() {
+    document.getElementById('copyRouteModal').classList.add('hidden');
+    pickingStartingPoint = true;
+    document.getElementById('pickStartingPointBanner').classList.remove('hidden');
+    document.body.style.cursor = 'crosshair';
+}
+
+function finishPickStartingPoint(x, y) {
+    pickingStartingPoint = false;
+    document.getElementById('pickStartingPointBanner').classList.add('hidden');
+    document.body.style.cursor = '';
+    clearRoutePreview();
+    copyStartingPoint = { x, y };
+    document.getElementById('startingPointDisplay').textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
+    document.getElementById('copyRouteModal').classList.remove('hidden');
+}
+
+function getMirrorPreviewParams() {
+    const fromId = parseInt(document.getElementById('copyRouteFrom')?.value, 10);
+    const mirrorX = document.getElementById('mirrorHorizontal')?.checked || false;
+    const mirrorY = document.getElementById('mirrorVertical')?.checked || false;
+    const mirrorMode = document.querySelector('input[name="mirrorMode"]:checked')?.value || 'route';
+    return { fromId, mirrorX, mirrorY, mirrorMode };
+}
+
 function toggleMode() {
     const currentMode = State.getMode();
     const newMode = currentMode === 'design' ? 'playback' : 'design';
@@ -308,6 +398,12 @@ function setupEventListeners() {
 
     // Canvas click - add route point
     stage.on('click', (e) => {
+        if (pickingStartingPoint) {
+            const pos = stage.getPointerPosition();
+            finishPickStartingPoint(snapToGrid(pos.x), snapToGrid(pos.y));
+            return;
+        }
+
         if (State.getMode() !== 'design') {
             if (stepCounterText) {
                 stepCounterText.destroy();
@@ -364,8 +460,23 @@ function setupEventListeners() {
         redrawRoutes();
     });
 
-    // Canvas mousemove - show step counter
+    // Canvas mousemove - preview while picking starting point + step counter
     stage.on('mousemove', (e) => {
+        if (pickingStartingPoint) {
+            const pos = stage.getPointerPosition();
+            const sx = snapToGrid(pos.x);
+            const sy = snapToGrid(pos.y);
+            const { fromId, mirrorX, mirrorY, mirrorMode } = getMirrorPreviewParams();
+            const people = State.getPeople();
+            const person = people.find(p => p.id === fromId);
+            const source = fromId ? State.getRouteForPerson(fromId) : null;
+            if (source && source.length > 0 && person) {
+                const preview = computeCopiedRoute(source, mirrorX, mirrorY, mirrorMode, { x: sx, y: sy }, stage.width());
+                drawRoutePreview(preview, person.color);
+            }
+            return;
+        }
+
         if (State.getMode() !== 'design') {
             if (stepCounterText) {
                 stepCounterText.destroy();
@@ -419,12 +530,27 @@ function setupEventListeners() {
     document.getElementById('resetPositions')?.addEventListener('click', resetPositions);
     document.getElementById('playPause')?.addEventListener('click', togglePlayPause);
     document.getElementById('stop')?.addEventListener('click', stopAnimation);
+    document.getElementById('newChoreography')?.addEventListener('click', newChoreography);
     document.getElementById('saveChoreography')?.addEventListener('click', saveChoreography);
     document.getElementById('deleteChoreography')?.addEventListener('click', deleteChoreography);
     document.getElementById('addPerson')?.addEventListener('click', addPerson);
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
     document.getElementById('toggleSnapping')?.addEventListener('click', toggleSnapping);
     document.getElementById('deleteLastStep')?.addEventListener('click', deleteLastStep);
+    document.getElementById('copyRoute')?.addEventListener('click', openCopyRouteModal);
+    document.getElementById('copyRouteModalClose')?.addEventListener('click', closeCopyRouteModal);
+    document.getElementById('copyRouteCancel')?.addEventListener('click', closeCopyRouteModal);
+    document.getElementById('copyRouteConfirm')?.addEventListener('click', confirmCopyRoute);
+    document.getElementById('pickStartingPointBtn')?.addEventListener('click', startPickStartingPoint);
+
+    // Show/hide mirror mode group when mirror checkboxes change
+    ['mirrorHorizontal', 'mirrorVertical'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', () => {
+            const anyChecked = document.getElementById('mirrorHorizontal').checked
+                || document.getElementById('mirrorVertical').checked;
+            document.getElementById('mirrorModeGroup').style.display = anyChecked ? 'block' : 'none';
+        });
+    });
 
     // Zoom control event listeners
     document.getElementById('zoomIn')?.addEventListener('click', zoomIn);
@@ -565,6 +691,17 @@ window.addEventListener('stageResize', (event) => {
     redrawRoutes();
 });
 
+// Cancel starting-point picking on Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && pickingStartingPoint) {
+        pickingStartingPoint = false;
+        document.getElementById('pickStartingPointBanner').classList.add('hidden');
+        document.body.style.cursor = '';
+        clearRoutePreview();
+        document.getElementById('copyRouteModal').classList.remove('hidden');
+    }
+});
+
 // ============= DOM Ready =============
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -628,4 +765,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Admin button on project selection screen
     document.getElementById('projectAdminBtn')?.addEventListener('click', showAdminPanel);
+
+    // CSV import button (always registered, not dependent on canvas stage)
+    const csvBtn = document.getElementById('importPersonCsvBtn');
+    const csvInput = document.getElementById('csvPersonFileInput');
+    csvBtn?.addEventListener('click', () => csvInput?.click());
+    csvInput?.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            importPeopleFromCsv(file);
+            e.target.value = '';
+        }
+    });
 });

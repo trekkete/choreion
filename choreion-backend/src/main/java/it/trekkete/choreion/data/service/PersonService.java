@@ -35,6 +35,24 @@ public class PersonService {
         return toDTO(person);
     }
 
+    public List<PersonDTO> createPeople(List<PersonDTO> personDTOs, Long projectId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        List<Person> people = personDTOs.stream().map(dto -> {
+            Person person = new Person();
+            person.setName(dto.getName());
+            person.setColor(dto.getColor());
+            person.setLetter(dto.getLetter());
+            person.setProject(project);
+            return person;
+        }).collect(Collectors.toList());
+
+        return personRepository.saveAll(people).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
     public PersonDTO createPerson(PersonDTO personDTO, Long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));

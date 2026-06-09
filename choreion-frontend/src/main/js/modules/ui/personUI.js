@@ -105,6 +105,60 @@ export async function addPerson() {
 }
 
 /**
+ * Import people from a CSV file (columns: fullName, initial, hexColor)
+ * @param {File} file - The CSV file
+ */
+export async function importPeopleFromCsv(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target.result;
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+
+            const peopleData = [];
+            for (const line of lines) {
+                const parts = line.split(',').map(p => p.trim());
+                if (parts.length < 3) continue;
+
+                const [name, letter, color] = parts;
+                // Skip header row
+                if (name.toLowerCase() === 'fullname' || name.toLowerCase() === 'name') continue;
+                if (!name || !letter || !color) continue;
+
+                peopleData.push({ name, letter, color });
+            }
+
+            if (peopleData.length === 0) {
+                showStatus('No valid people found in CSV', 'error');
+                resolve();
+                return;
+            }
+
+            try {
+                const projectId = getCurrentProjectId();
+                const saved = await Api.importPeople(peopleData, projectId);
+
+                saved.forEach(person => {
+                    window.dispatchEvent(new CustomEvent('person:created', {
+                        detail: { person, personData: { color: person.color, letter: person.letter } }
+                    }));
+                });
+
+                renderPersonList();
+                showStatus(`Imported ${saved.length} people successfully!`, 'success');
+                resolve();
+            } catch (error) {
+                console.error('Error importing people:', error);
+                showStatus('Error importing people from CSV', 'error');
+                reject(error);
+            }
+        };
+        reader.onerror = reject;
+        reader.readAsText(file);
+    });
+}
+
+/**
  * Remove a person
  * @param {number} index - Person index
  */

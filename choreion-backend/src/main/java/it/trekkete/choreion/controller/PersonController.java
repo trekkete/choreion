@@ -30,6 +30,14 @@ public class PersonController {
         return ResponseEntity.ok(personService.getPersonById(id, projectId));
     }
 
+    @PostMapping("/bulk")
+    @PreAuthorize("hasAnyRole('CHOREOGRAPHER', 'ADMIN')")
+    public ResponseEntity<List<PersonDTO>> createPeople(
+            @RequestBody List<PersonDTO> personDTOs,
+            @RequestParam Long projectId) {
+        return ResponseEntity.ok(personService.createPeople(personDTOs, projectId));
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('CHOREOGRAPHER', 'ADMIN')")
     public ResponseEntity<PersonDTO> createPerson(

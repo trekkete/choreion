@@ -144,6 +144,9 @@
                             <button id="deleteLastStep" data-i18n-title="controls.deleteLastStep"><i class="fa-solid fa-delete-left"></i></i></button>
                         </div>
                         <div class="control-group">
+                            <button id="copyRoute" data-i18n-title="controls.copyRoute"><i class="fas fa-copy"></i></button>
+                        </div>
+                        <div class="control-group">
                             <button class="btn-danger" id="clearAll" data-i18n-title="controls.clearRoutes"><i class="fa-solid fa-ban"></i></button>
                         </div>
                     </div>
@@ -186,6 +189,7 @@
                 </div>
 
                 <div class="form-row">
+                    <button class="btn-small" id="newChoreography" data-i18n-title="choreography.new"><i class="fas fa-plus"></i></button>
                     <button class="btn-success" id="saveChoreography" style="flex: 1;" data-i18n-title="choreography.save"><i class="fas fa-save"></i></button>
                     <button class="btn-danger btn-small" id="deleteChoreography" data-i18n-title="choreography.delete"><i class="fas fa-trash"></i></button>
                 </div>
@@ -219,6 +223,8 @@
                         <input type="color" id="newPersonColor" value="#3498db">
                     </div>
                     <button class="btn-success" id="addPerson" style="width: 100%;" data-i18n-title="people.add.button"><i class="fas fa-plus"></i></button>
+                    <input type="file" id="csvPersonFileInput" accept=".csv" style="display: none;">
+                    <button id="importPersonCsvBtn" style="width: 100%; margin-top: 6px;" data-i18n-title="people.import.button"><i class="fas fa-file-csv"></i></button>
                 </div>
 
                 <div class="section-title" data-i18n="people.list.title">People (Click to design route)</div>
@@ -334,5 +340,68 @@
         </div>
     </div>
 </div>
+
+<div id="pickStartingPointBanner" class="pick-pivot-banner hidden" data-i18n="copyRoute.pickStartingPoint.banner">Click on the canvas to set the starting point — press Escape to cancel</div>
+
+<div id="copyRouteModal" class="modal-overlay hidden">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <span data-i18n="copyRoute.title">Copy Choreography</span>
+            <button class="modal-close" id="copyRouteModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label data-i18n="copyRoute.from">Copy from:</label>
+                <select id="copyRouteFrom" style="width:100%;"></select>
+            </div>
+            <div class="form-group">
+                <label data-i18n="copyRoute.to">Copy to:</label>
+                <select id="copyRouteTo" style="width:100%;"></select>
+            </div>
+            <div class="form-group">
+                <label data-i18n="copyRoute.mirror">Mirror:</label>
+                <div style="display:flex; gap:15px; margin-top:6px;">
+                    <label style="display:flex; align-items:center; gap:5px; font-weight:normal;">
+                        <input type="checkbox" id="mirrorHorizontal">
+                        <span data-i18n="copyRoute.mirrorH">Horizontal</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:5px; font-weight:normal;">
+                        <input type="checkbox" id="mirrorVertical">
+                        <span data-i18n="copyRoute.mirrorV">Vertical</span>
+                    </label>
+                </div>
+            </div>
+            <div class="form-group" id="mirrorModeGroup" style="display:none;">
+                <label data-i18n="copyRoute.mirrorMode">Mirror relative to:</label>
+                <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+                    <label style="display:flex; align-items:center; gap:6px; font-weight:normal;">
+                        <input type="radio" name="mirrorMode" value="canvas" id="mirrorModeCanvas">
+                        <span data-i18n="copyRoute.mirrorMode.canvas">Canvas center</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; font-weight:normal;">
+                        <input type="radio" name="mirrorMode" value="route" id="mirrorModeRoute" checked>
+                        <span data-i18n="copyRoute.mirrorMode.route">Choreography center</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; font-weight:normal;">
+                        <input type="radio" name="mirrorMode" value="closest" id="mirrorModeClosest">
+                        <span data-i18n="copyRoute.mirrorMode.closest">Center-most point</span>
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label data-i18n="copyRoute.startingPoint">Starting point:</label>
+                <div style="display:flex; gap:10px; margin-top:6px; align-items:center;">
+                    <span id="startingPointDisplay" style="flex:1; font-size:13px; color:#7f8c8d;" data-i18n="copyRoute.startingPoint.none">Not set (keeps original position)</span>
+                    <button id="pickStartingPointBtn" style="flex-shrink:0;" data-i18n-title="copyRoute.pickStartingPoint"><i class="fas fa-crosshairs"></i></button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="copyRouteCancel" data-i18n="copyRoute.cancel">Cancel</button>
+            <button class="btn-success" id="copyRouteConfirm" data-i18n="copyRoute.confirm">Copy</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
