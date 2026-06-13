@@ -12,7 +12,7 @@ import { getCurrentGridSize } from './stage.js';
  * @param {number} gridSize - Optional grid size (uses current grid size if not provided)
  * @param {number} gridSpacing - Optional grid spacing (calculated if not provided)
  */
-export function drawGrid(gridLayer, gridSize = null, gridSpacing = null) {
+export function drawGrid(gridLayer, gridSize = null, gridSpacing = null, gridVisible = true) {
     if (!gridLayer) return;
 
     // Use provided sizes or get current sizes
@@ -21,6 +21,26 @@ export function drawGrid(gridLayer, gridSize = null, gridSpacing = null) {
 
     // Clear existing grid
     gridLayer.destroyChildren();
+
+    if (!gridVisible) {
+        // Show only the border and the two red center lines
+        gridLayer.add(new Konva.Rect({
+            x: 0, y: 0,
+            width: actualGridSize, height: actualGridSize,
+            stroke: '#333', strokeWidth: 2,
+            fill: 'transparent', listening: false
+        }));
+        gridLayer.add(new Konva.Line({
+            points: [actualGridSize / 2, 0, actualGridSize / 2, actualGridSize],
+            stroke: '#f00', strokeWidth: 2, listening: false
+        }));
+        gridLayer.add(new Konva.Line({
+            points: [0, 10 * actualGridSpacing, actualGridSize, 10 * actualGridSpacing],
+            stroke: '#f00', strokeWidth: 2, listening: false
+        }));
+        gridLayer.batchDraw();
+        return;
+    }
 
     // Calculate center line position
     const centerLine = actualGridSize / 2;

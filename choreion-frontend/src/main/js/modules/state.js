@@ -164,6 +164,33 @@ export function isPlaybackMode() {
     return mode === 'playback';
 }
 
+// ============= Input Mode State =============
+let inputMode = 'click'; // 'click' | 'draw'
+
+export function setInputMode(newInputMode) {
+    inputMode = newInputMode;
+}
+
+export function getInputMode() {
+    return inputMode;
+}
+
+// ============= Grid Visibility State =============
+let gridVisible = true;
+
+export function setGridVisible(visible) {
+    gridVisible = visible;
+}
+
+export function getGridVisible() {
+    return gridVisible;
+}
+
+export function toggleGridVisible() {
+    gridVisible = !gridVisible;
+    return gridVisible;
+}
+
 // ============= Selection State =============
 let selectedPerson = null;
 

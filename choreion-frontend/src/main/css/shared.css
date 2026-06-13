@@ -13,6 +13,7 @@ body {
 .app-container {
     display: flex;
     flex-direction: column;
+    height: 100vh;
 }
 
 /* Loading Screen Styles */
@@ -263,7 +264,7 @@ body {
 }
 
 .canvas-section {
-    width: 70%;
+    flex: 1;
     display: flex;
     flex-direction: column;
     padding: 20px;
@@ -323,6 +324,69 @@ body {
   flex-direction: column;
 }
 
+/* ===== Floating Controls Panel ===== */
+.floating-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    z-index: 5;
+    transition: transform 0.25s ease;
+    border-radius: 0 8px 8px 0;
+}
+
+.floating-controls.retracted {
+    transform: translateX(calc(-100% + 32px));
+}
+
+.floating-controls-body {
+    background: white;
+    padding: 12px 14px;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.floating-controls-body .canvas-controls {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    margin-bottom: 0;
+    border-radius: 0;
+}
+
+.floating-controls-body .mode-info {
+    margin-bottom: 0;
+    font-size: 12px;
+    padding: 6px 8px;
+}
+
+.floating-controls-handle {
+    width: 32px;
+    flex-shrink: 0;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    min-height: unset;
+    min-width: 32px;
+    font-size: 14px;
+    transition: background 0.2s;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.15);
+}
+
+.floating-controls-handle:hover {
+    background: #2980b9;
+}
+
 .canvas-wrapper::after {
     content: '';
     position: absolute;
@@ -335,16 +399,60 @@ body {
     border-radius: 8px;
 }
 
+#mirrorModeGroup input {
+    width: unset;
+}
+
 #container {
     position: relative;
 }
 
-.sidebar {
+.sidebar-outer {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
     width: 30%;
+    flex-shrink: 0;
+    margin: 20px 0;
+    border-radius: 8px 0 0 8px;
+    box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+    transition: width 0.25s ease;
+}
+
+.sidebar-outer.retracted {
+    width: 32px;
+}
+
+.sidebar-handle {
+    order: -1;
+    width: 32px;
+    min-width: 32px;
+    flex-shrink: 0;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    padding: 0;
+    transition: background 0.2s;
+    min-height: unset;
+}
+
+.sidebar-handle:hover {
+    background: #2980b9;
+}
+
+.sidebar {
+    flex: 1;
+    min-width: 0;
     background: white;
     display: flex;
     flex-direction: column;
-    box-shadow: -2px 0 8px rgba(0,0,0,0.1);
 }
 
 .tabs {
@@ -379,12 +487,13 @@ body {
 .tab-content {
     display: none;
     flex: 1;
-    overflow-y: auto;
+    overflow: hidden;
     padding: 20px;
 }
 
 .tab-content.active {
-    display: block;
+    display: flex;
+    flex-direction: column;
 }
 
 .section-title {
@@ -396,12 +505,36 @@ body {
     padding-bottom: 8px;
 }
 
+.collapsible-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+.collapsible-header:hover {
+    opacity: 0.8;
+}
+
+.collapsible-body {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.25s ease-out;
+}
+
+.collapsible-body.expanded {
+    max-height: 600px;
+    transition: max-height 0.35s ease-in;
+}
+
 .choreography-list, .person-list {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-height: 400px;
-    overflow-y: scroll;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .choreography-item, .person-item {
@@ -498,7 +631,7 @@ button {
 
 .canvas-controls button, .canvas-buttons button {
     padding: 0;
-    font-size: 20px;
+    font-size: 15px;
     cursor: pointer;
     border: 1px solid #3498db;
     border-radius: 4px;
@@ -506,8 +639,8 @@ button {
     color: #3498db;
     transition: color 0.3s, border-color 0.3s;
     font-weight: 500;
-    min-height: 50px;
-    min-width: 50px;
+    min-height: 30px;
+    min-width: 30px;
 }
 
 button:hover {
@@ -518,6 +651,18 @@ button:hover {
     color: #1a5984;
     border-color: #1a5984;
     background: white;
+}
+
+.canvas-controls button.btn-mode-active {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+.canvas-controls button.btn-mode-active:hover {
+    background: #2980b9;
+    color: white;
+    border-color: #2980b9;
 }
 
 button:disabled {
@@ -790,11 +935,7 @@ select:focus {
 
 /* Tablet Devices (768px - 1024px) */
 @media (max-width: 1024px) and (min-width: 768px) {
-    .canvas-section {
-        width: 65%;
-    }
-
-    .sidebar {
+    .sidebar-outer {
         width: 35%;
     }
 
@@ -996,7 +1137,7 @@ select:focus {
     }
 
     /* Choreography List - Read Only on Mobile */
-    #choreographyTitle,
+    #choreographyFormToggle,
     #choreographyName,
     #choreographySteps,
     #saveChoreography,
@@ -1028,10 +1169,6 @@ select:focus {
     .person-color-box {
         width: 36px;
         height: 36px;
-    }
-
-    .choreography-list {
-        max-height: none;
     }
 
     /* Login/Project Selection - Mobile */

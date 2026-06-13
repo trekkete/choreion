@@ -25,6 +25,12 @@ import { togglePlayPause, stopAnimation } from "./modules/canvas/animation.js";
 // Track step counter text
 let stepCounterText = null;
 
+// ============= Draw Mode State =============
+let isDrawing = false;
+let rawDrawPath = [];
+let drawPreviewLine = null;
+let pendingDrawPath = [];
+
 // ============= Auth Functions =============
 
 async function handleLogin(username, password) {
@@ -153,7 +159,7 @@ function initializeApp() {
     let stage = getStage();
     if (!stage) {
         const { stage: newStage, layer, gridLayer } = initializeStage();
-        drawGrid(gridLayer);
+        drawGrid(gridLayer, null, null, State.getGridVisible());
         setupEventListeners();
     }
 
@@ -225,8 +231,30 @@ function toggleSnapping() {
     const enabled = State.toggleSnapToGrid();
     const btn = document.getElementById('toggleSnapping');
     if (btn) {
-        btn.innerHTML = enabled ? '<i class="fas fa-link-slash"></i>' : '<i class="fas fa-magnet"></i>';
+        btn.innerHTML = '<i class="fas fa-magnet"></i>';
+        btn.setAttribute('data-i18n-title', enabled ? 'controls.snapToGrid.on' : 'controls.snapToGrid.off');
+        btn.title = t(enabled ? 'controls.snapToGrid.on' : 'controls.snapToGrid.off');
+        btn.classList.toggle('btn-mode-active', enabled);
     }
+}
+
+function toggleGrid() {
+    const visible = State.toggleGridVisible();
+    const gridLayer = getGridLayer();
+    if (gridLayer) {
+        drawGrid(gridLayer, null, null, visible);
+    }
+    const btn = document.getElementById('toggleGrid');
+    if (btn) btn.classList.toggle('btn-mode-active', visible);
+}
+
+function toggleCollapsible(bodyId, toggleId) {
+    const body = document.getElementById(bodyId);
+    const toggle = document.getElementById(toggleId);
+    if (!body) return;
+    const isExpanded = body.classList.toggle('expanded');
+    const icon = toggle?.querySelector('i');
+    if (icon) icon.className = isExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
 }
 
 function deleteLastStep() {
@@ -356,6 +384,15 @@ function toggleMode() {
     const designControls = document.getElementById('designControls');
 
     if (newMode === 'playback') {
+        // Reset draw mode when leaving design mode
+        clearDrawState();
+        State.setInputMode('click');
+        const inputModeBtn = document.getElementById('toggleInputMode');
+        if (inputModeBtn) {
+            inputModeBtn.innerHTML = '<i class="fas fa-mouse-pointer"></i>';
+            inputModeBtn.classList.remove('btn-mode-active');
+        }
+
         if (btn) {
             btn.setAttribute('data-i18n-title', 'button.switch.design');
             btn.innerHTML = '<i class="fas fa-edit"></i>';
@@ -390,14 +427,237 @@ function toggleMode() {
     }
 }
 
+// ============= Floating Controls Panel =============
+
+function toggleFloatingControls() {
+    const panel = document.getElementById('floatingControls');
+    const icon = document.querySelector('#floatingControlsToggle i');
+    if (!panel) return;
+    const isRetracted = panel.classList.toggle('retracted');
+    if (icon) {
+        icon.className = isRetracted ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+    }
+}
+
+function toggleSidebar() {
+    const outer = document.getElementById('sidebarOuter');
+    const icon = document.querySelector('#sidebarToggle i');
+    if (!outer) return;
+    const isRetracted = outer.classList.toggle('retracted');
+    if (icon) {
+        icon.className = isRetracted ? 'fas fa-chevron-left' : 'fas fa-chevron-right';
+    }
+}
+
+// ============= Draw Mode =============
+
+function clearDrawState() {
+    isDrawing = false;
+    rawDrawPath = [];
+    const layer = getLayer();
+    if (layer) {
+        if (drawPreviewLine) {
+            drawPreviewLine.destroy();
+            drawPreviewLine = null;
+        }
+        layer.find('.draw-preview').forEach(el => el.destroy());
+        layer.batchDraw();
+    }
+    drawPreviewLine = null;
+    const stage = getStage();
+    if (stage) stage.container().style.cursor = '';
+}
+
+function toggleInputMode() {
+    const current = State.getInputMode();
+    const next = current === 'click' ? 'draw' : 'click';
+    State.setInputMode(next);
+
+    // Clean up visual artifacts from the previous input mode
+    if (stepCounterText) {
+        stepCounterText.destroy();
+        stepCounterText = null;
+    }
+    const layer = getLayer();
+    if (layer) {
+        layer.find('.draw-preview').forEach(el => el.destroy());
+    }
+    if (next === 'draw') {
+        // Also remove click-mode route preview crosshair lines
+        redrawRoutes();
+        getStage()?.container() && (getStage().container().style.cursor = 'crosshair');
+    } else {
+        clearDrawState();
+    }
+
+    const btn = document.getElementById('toggleInputMode');
+    if (btn) {
+        if (next === 'draw') {
+            btn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+            btn.setAttribute('data-i18n-title', 'controls.inputMode.draw');
+            btn.title = t('controls.inputMode.draw');
+            btn.classList.add('btn-mode-active');
+        } else {
+            btn.innerHTML = '<i class="fas fa-mouse-pointer"></i>';
+            btn.setAttribute('data-i18n-title', 'controls.inputMode.click');
+            btn.title = t('controls.inputMode.click');
+            btn.classList.remove('btn-mode-active');
+        }
+    }
+
+    const info = document.getElementById('modeInfo');
+    if (info && State.getMode() === 'design') {
+        if (next === 'draw') {
+            info.innerHTML = `<strong>${t('mode.design')}:</strong> <span>${t('drawMode.modeInfo')}</span>`;
+        } else {
+            info.innerHTML = `<strong>${t('mode.design')}:</strong> <span>${t('mode.design.info')}</span>`;
+        }
+    }
+}
+
+function samplePathUniform(points, n) {
+    if (!points || points.length === 0 || n <= 0) return [];
+    if (points.length === 1) return Array.from({ length: n }, () => ({ ...points[0] }));
+    if (n === 1) return [{ ...points[points.length - 1] }];
+
+    const lengths = [0];
+    for (let i = 1; i < points.length; i++) {
+        const dx = points[i].x - points[i - 1].x;
+        const dy = points[i].y - points[i - 1].y;
+        lengths.push(lengths[i - 1] + Math.hypot(dx, dy));
+    }
+    const totalLength = lengths[lengths.length - 1];
+    if (totalLength === 0) return Array.from({ length: n }, () => ({ ...points[0] }));
+
+    const result = [];
+    for (let i = 0; i < n; i++) {
+        const targetLen = (i / (n - 1)) * totalLength;
+        let segIdx = 1;
+        while (segIdx < lengths.length - 1 && lengths[segIdx] < targetLen) {
+            segIdx++;
+        }
+        const segStart = lengths[segIdx - 1];
+        const segEnd = lengths[segIdx];
+        const ratio = segEnd === segStart ? 0 : (targetLen - segStart) / (segEnd - segStart);
+        const x = points[segIdx - 1].x + ratio * (points[segIdx].x - points[segIdx - 1].x);
+        const y = points[segIdx - 1].y + ratio * (points[segIdx].y - points[segIdx - 1].y);
+        result.push({ x: snapToGrid(x), y: snapToGrid(y) });
+    }
+    return result;
+}
+
+function openDrawStepsModal() {
+    const selectedPerson = State.getSelectedPerson();
+    const routes = State.getRoutes();
+    const currentSteps = selectedPerson ? (routes[selectedPerson.id]?.length || 0) : 0;
+    const maxSteps = State.getCurrentChoreographySteps();
+    const remaining = maxSteps - currentSteps;
+
+    if (remaining <= 0) {
+        showStatus(t('status.step.maxReached', { max: maxSteps }), 'error');
+        return;
+    }
+
+    const input = document.getElementById('drawStepsCount');
+    if (input) {
+        input.max = remaining;
+        input.value = Math.min(4, remaining);
+    }
+
+    const info = document.getElementById('drawStepsInfo');
+    if (info) {
+        info.textContent = t('drawMode.modal.stepsInfo', { remaining });
+    }
+
+    document.getElementById('drawStepsModal').classList.remove('hidden');
+}
+
+function closeDrawStepsModal() {
+    pendingDrawPath = [];
+    document.getElementById('drawStepsModal').classList.add('hidden');
+}
+
+function confirmDrawSteps() {
+    const selectedPerson = State.getSelectedPerson();
+    if (!selectedPerson || pendingDrawPath.length === 0) {
+        closeDrawStepsModal();
+        return;
+    }
+
+    const n = parseInt(document.getElementById('drawStepsCount').value, 10);
+    if (isNaN(n) || n < 1) return;
+
+    const routes = State.getRoutes();
+    const currentSteps = routes[selectedPerson.id]?.length || 0;
+    const maxSteps = State.getCurrentChoreographySteps();
+    const remaining = maxSteps - currentSteps;
+    const stepsToAdd = Math.min(n, remaining);
+
+    const sampled = samplePathUniform(pendingDrawPath, stepsToAdd);
+    sampled.forEach(pt => routes[selectedPerson.id].push(pt));
+
+    State.setHasUnsavedChanges(true);
+    redrawRoutes();
+    closeDrawStepsModal();
+    showStatus(t('drawMode.status.stepsAdded', { count: stepsToAdd }), 'success');
+}
+
 // ============= Event Listeners =============
 
 function setupEventListeners() {
     const stage = getStage();
     const layer = getLayer();
 
+    // Canvas mousedown - start draw mode path
+    stage.on('mousedown', (e) => {
+        if (State.getMode() !== 'design') return;
+        if (State.getInputMode() !== 'draw') return;
+        if (e.target !== stage) return;
+
+        const selectedPerson = State.getSelectedPerson();
+        if (!selectedPerson) {
+            showStatus(t('status.step.selectPerson'), 'error');
+            return;
+        }
+
+        const routes = State.getRoutes();
+        const currentSteps = routes[selectedPerson.id]?.length || 0;
+        const maxSteps = State.getCurrentChoreographySteps();
+
+        if (currentSteps >= maxSteps) {
+            showStatus(t('status.step.maxReached', { max: maxSteps }), 'error');
+            return;
+        }
+
+        isDrawing = true;
+        rawDrawPath = [];
+        const pos = stage.getPointerPosition();
+        rawDrawPath.push({ x: pos.x, y: pos.y });
+    });
+
+    // Canvas mouseup - finish draw mode path
+    stage.on('mouseup', (e) => {
+        if (!isDrawing) return;
+        isDrawing = false;
+
+        layer.find('.draw-preview').forEach(el => el.destroy());
+        drawPreviewLine = null;
+        layer.batchDraw();
+
+        if (rawDrawPath.length < 2) {
+            rawDrawPath = [];
+            return;
+        }
+
+        pendingDrawPath = [...rawDrawPath];
+        rawDrawPath = [];
+        openDrawStepsModal();
+    });
+
     // Canvas click - add route point
     stage.on('click', (e) => {
+        if (State.getInputMode() === 'draw') return;
+
         if (pickingStartingPoint) {
             const pos = stage.getPointerPosition();
             finishPickStartingPoint(snapToGrid(pos.x), snapToGrid(pos.y));
@@ -460,7 +720,7 @@ function setupEventListeners() {
         redrawRoutes();
     });
 
-    // Canvas mousemove - preview while picking starting point + step counter
+    // Canvas mousemove - preview while picking starting point / draw mode path / step counter
     stage.on('mousemove', (e) => {
         if (pickingStartingPoint) {
             const pos = stage.getPointerPosition();
@@ -482,6 +742,39 @@ function setupEventListeners() {
                 stepCounterText.destroy();
                 stepCounterText = null;
                 layer.batchDraw();
+            }
+            return;
+        }
+
+        // Draw mode: update live path preview while dragging
+        if (State.getInputMode() === 'draw') {
+            if (stepCounterText) {
+                stepCounterText.destroy();
+                stepCounterText = null;
+            }
+            if (isDrawing) {
+                const pos = stage.getPointerPosition();
+                const last = rawDrawPath[rawDrawPath.length - 1];
+                if (!last || Math.hypot(pos.x - last.x, pos.y - last.y) > 5) {
+                    rawDrawPath.push({ x: pos.x, y: pos.y });
+                }
+                if (rawDrawPath.length > 1) {
+                    const selectedPerson = State.getSelectedPerson();
+                    const people = State.getPeople();
+                    const color = selectedPerson ? people[selectedPerson.index]?.color || '#888' : '#888';
+                    if (!drawPreviewLine) {
+                        drawPreviewLine = new Konva.Line({
+                            points: [],
+                            stroke: color,
+                            strokeWidth: 2.5,
+                            opacity: 0.75,
+                            name: 'draw-preview'
+                        });
+                        layer.add(drawPreviewLine);
+                    }
+                    drawPreviewLine.points(rawDrawPath.flatMap(p => [p.x, p.y]));
+                    layer.batchDraw();
+                }
             }
             return;
         }
@@ -524,6 +817,8 @@ function setupEventListeners() {
     });
 
     // UI button event listeners
+    document.getElementById('floatingControlsToggle')?.addEventListener('click', toggleFloatingControls);
+    document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
     document.getElementById('switchProjectBtn')?.addEventListener('click', switchToProjectSelection);
     document.getElementById('toggleMode')?.addEventListener('click', toggleMode);
     document.getElementById('clearAll')?.addEventListener('click', () => clearAllRoutes(true));
@@ -536,12 +831,19 @@ function setupEventListeners() {
     document.getElementById('addPerson')?.addEventListener('click', addPerson);
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
     document.getElementById('toggleSnapping')?.addEventListener('click', toggleSnapping);
+    document.getElementById('toggleGrid')?.addEventListener('click', toggleGrid);
     document.getElementById('deleteLastStep')?.addEventListener('click', deleteLastStep);
+    document.getElementById('choreographyFormToggle')?.addEventListener('click', () => toggleCollapsible('choreographyFormBody', 'choreographyFormToggle'));
+    document.getElementById('personFormToggle')?.addEventListener('click', () => toggleCollapsible('personFormBody', 'personFormToggle'));
+    document.getElementById('toggleInputMode')?.addEventListener('click', toggleInputMode);
     document.getElementById('copyRoute')?.addEventListener('click', openCopyRouteModal);
     document.getElementById('copyRouteModalClose')?.addEventListener('click', closeCopyRouteModal);
     document.getElementById('copyRouteCancel')?.addEventListener('click', closeCopyRouteModal);
     document.getElementById('copyRouteConfirm')?.addEventListener('click', confirmCopyRoute);
     document.getElementById('pickStartingPointBtn')?.addEventListener('click', startPickStartingPoint);
+    document.getElementById('drawStepsModalClose')?.addEventListener('click', closeDrawStepsModal);
+    document.getElementById('drawStepsCancel')?.addEventListener('click', closeDrawStepsModal);
+    document.getElementById('drawStepsConfirm')?.addEventListener('click', confirmDrawSteps);
 
     // Show/hide mirror mode group when mirror checkboxes change
     ['mirrorHorizontal', 'mirrorVertical'].forEach(id => {
@@ -665,7 +967,7 @@ window.addEventListener('stageResize', (event) => {
     // Redraw grid with new size
     const gridLayer = getGridLayer();
     if (gridLayer) {
-        drawGrid(gridLayer, gridSize);
+        drawGrid(gridLayer, gridSize, null, State.getGridVisible());
     }
 
     // Scale all route coordinates relative to DEFAULT_GRID_SIZE
@@ -691,14 +993,17 @@ window.addEventListener('stageResize', (event) => {
     redrawRoutes();
 });
 
-// Cancel starting-point picking on Escape
+// Escape key: cancel starting-point picking or close draw steps modal
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && pickingStartingPoint) {
+    if (e.key !== 'Escape') return;
+    if (pickingStartingPoint) {
         pickingStartingPoint = false;
         document.getElementById('pickStartingPointBanner').classList.add('hidden');
         document.body.style.cursor = '';
         clearRoutePreview();
         document.getElementById('copyRouteModal').classList.remove('hidden');
+    } else if (!document.getElementById('drawStepsModal')?.classList.contains('hidden')) {
+        closeDrawStepsModal();
     }
 });
 

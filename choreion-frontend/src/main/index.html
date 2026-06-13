@@ -118,83 +118,101 @@
                 <div class="control-group canvas-buttons">
                     <button id="zoomIn" data-i18n-title="controls.zoomIn"><i class="fas fa-search-plus"></i></button>
                     <button id="zoomOut" data-i18n-title="controls.zoomOut"><i class="fas fa-search-minus"></i></button>
-                    <button id="resetZoom" data-i18n-title="controls.resetZoom"><i class="fas fa-bolt"></i></button>
+                    <button id="resetZoom" data-i18n-title="controls.resetZoom"><i class="fas fa-compress"></i></button>
+                    <button id="toggleGrid" class="btn-mode-active" data-i18n-title="controls.toggleGrid"><i class="fas fa-border-all"></i></button>
                 </div>
                 <div id="container"></div>
-            </div>
-        </div>
+                <div id="floatingControls" class="floating-controls">
+                    <div class="floating-controls-body">
+                        <div class="mode-info" id="modeInfo">
+                            <strong data-i18n="mode.design">Design Mode:</strong> <span data-i18n="mode.design.info">Select a person from the sidebar and click on the grid to create their route.</span>
+                        </div>
+                        <div class="canvas-controls">
+                            <div class="canvas-controls-container">
+                                <div id="modeContainer" class="playback-controls" style="margin-bottom: 10px;">
+                                    <div class="control-group">
+                                        <button id="toggleMode" data-i18n-title="button.switch.playback"><i class="fas fa-eye"></i></button>
+                                    </div>
+                                </div>
 
-        <div class="sidebar">
-            <div class="mode-info" id="modeInfo">
-                <strong data-i18n="mode.design">Design Mode:</strong> <span data-i18n="mode.design.info">Select a person from the sidebar and click on the grid to create their route.</span>
-            </div>
-            <div class="canvas-controls">
-                <div class="canvas-controls-container">
-                    <div id="modeContainer" class="playback-controls" style="margin-bottom: 10px;">
-                        <div class="control-group">
-                            <button id="toggleMode" data-i18n-title="button.switch.playback"><i class="fas fa-eye"></i></button>
-                        </div>
-                    </div>
+                                <div id="designControls" class="playback-controls">
+                                    <div class="control-group">
+                                        <button id="toggleSnapping" data-i18n-title="controls.snapToGrid.off"><i class="fas fa-magnet"></i></button>
+                                    </div>
+                                    <div class="control-group">
+                                        <button id="deleteLastStep" data-i18n-title="controls.deleteLastStep"><i class="fa-solid fa-delete-left"></i></button>
+                                    </div>
+                                    <div class="control-group">
+                                        <button id="toggleInputMode" data-i18n-title="controls.inputMode.click"><i class="fas fa-mouse-pointer"></i></button>
+                                    </div>
+                                    <div class="control-group">
+                                        <button id="copyRoute" data-i18n-title="controls.copyRoute"><i class="fas fa-copy"></i></button>
+                                    </div>
+                                    <div class="control-group">
+                                        <button class="btn-danger" id="clearAll" data-i18n-title="controls.clearRoutes"><i class="fa-solid fa-ban"></i></button>
+                                    </div>
+                                </div>
 
-                    <div id="designControls" class="playback-controls">
-                        <div class="control-group">
-                            <button id="toggleSnapping" data-i18n-title="controls.snapToGrid.on"><i class="fas fa-magnet"></i></button>
-                        </div>
-                        <div class="control-group">
-                            <button id="deleteLastStep" data-i18n-title="controls.deleteLastStep"><i class="fa-solid fa-delete-left"></i></i></button>
-                        </div>
-                        <div class="control-group">
-                            <button id="copyRoute" data-i18n-title="controls.copyRoute"><i class="fas fa-copy"></i></button>
-                        </div>
-                        <div class="control-group">
-                            <button class="btn-danger" id="clearAll" data-i18n-title="controls.clearRoutes"><i class="fa-solid fa-ban"></i></button>
-                        </div>
-                    </div>
-
-                    <div id="playbackControls" class="playback-controls-container hidden">
-                        <div class="playback-controls">
-                            <div class="control-group">
-                                <button id="playPause" data-i18n-title="controls.play"><i class="fas fa-play"></i></button>
-                                <button id="stop" data-i18n-title="controls.stop"><i class="fas fa-stop"></i></button>
+                                <div id="playbackControls" class="playback-controls-container hidden">
+                                    <div class="playback-controls">
+                                        <div class="control-group">
+                                            <button id="playPause" data-i18n-title="controls.play"><i class="fas fa-play"></i></button>
+                                            <button id="stop" data-i18n-title="controls.stop"><i class="fas fa-stop"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="playback-info">
+                                <div class="control-group">
+                                    <label data-i18n="controls.bpm">BPM:</label>
+                                    <input type="number" id="bpm" min="30" max="300" value="165" style="width: 100px;">
+                                </div>
+                                <div class="control-group">
+                                    <label data-i18n="controls.step">Step:</label>
+                                    <span id="timeDisplay">0 / 8</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="playback-info">
-                    <div class="control-group">
-                        <label data-i18n="controls.bpm">BPM:</label>
-                        <input type="number" id="bpm" min="30" max="300" value="165" style="width: 100px;">
-                    </div>
-                    <div class="control-group">
-                        <label data-i18n="controls.step">Step:</label>
-                        <span id="timeDisplay">0 / 8</span>
-                    </div>
+                    <button id="floatingControlsToggle" class="floating-controls-handle" title="Toggle controls">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
                 </div>
             </div>
+        </div>
+
+        <div id="sidebarOuter" class="sidebar-outer">
+        <button id="sidebarToggle" class="sidebar-handle"><i class="fas fa-chevron-right"></i></button>
+        <div class="sidebar">
             <div class="tabs">
                 <button class="tab active" data-tab="choreographies" data-i18n="choreography.title">Choreographies</button>
                 <button class="tab" data-tab="people" data-i18n="people.title">People</button>
             </div>
 
             <div id="choreographiesTab" class="tab-content active">
-                <div id="choreographyTitle" class="section-title" data-i18n="choreography.title">Choreographies</div>
-
-                <div class="form-group">
-                    <input type="text" id="choreographyName" data-i18n-placeholder="choreography.name" placeholder="Choreography name...">
+                <div id="choreographyFormToggle" class="section-title collapsible-header">
+                    <span data-i18n="choreography.title">Choreographies</span>
+                    <i class="fas fa-chevron-down"></i>
                 </div>
 
-                <div class="form-group">
-                    <label data-i18n="choreography.steps">Number of Steps:</label>
-                    <input type="number" id="choreographySteps" data-i18n-placeholder="choreography.steps.placeholder" placeholder="Number of steps" min="1" value="8">
-                </div>
+                <div id="choreographyFormBody" class="collapsible-body">
+                    <div class="form-group" style="margin-top: 10px;">
+                        <input type="text" id="choreographyName" data-i18n-placeholder="choreography.name" placeholder="Choreography name...">
+                    </div>
 
-                <div class="form-row">
-                    <button class="btn-small" id="newChoreography" data-i18n-title="choreography.new"><i class="fas fa-plus"></i></button>
-                    <button class="btn-success" id="saveChoreography" style="flex: 1;" data-i18n-title="choreography.save"><i class="fas fa-save"></i></button>
-                    <button class="btn-danger btn-small" id="deleteChoreography" data-i18n-title="choreography.delete"><i class="fas fa-trash"></i></button>
-                </div>
+                    <div class="form-group">
+                        <label data-i18n="choreography.steps">Number of Steps:</label>
+                        <input type="number" id="choreographySteps" data-i18n-placeholder="choreography.steps.placeholder" placeholder="Number of steps" min="1" value="8">
+                    </div>
 
-                <div id="statusMessage" class="status"></div>
+                    <div class="form-row">
+                        <button class="btn-small" id="newChoreography" data-i18n-title="choreography.new"><i class="fas fa-plus"></i></button>
+                        <button class="btn-success" id="saveChoreography" style="flex: 1;" data-i18n-title="choreography.save"><i class="fas fa-save"></i></button>
+                        <button class="btn-danger btn-small" id="deleteChoreography" data-i18n-title="choreography.delete"><i class="fas fa-trash"></i></button>
+                    </div>
+
+                    <div id="statusMessage" class="status"></div>
+                </div>
 
                 <div class="section-title" style="margin-top: 20px;" data-i18n="choreography.list.title">Saved Choreographies</div>
                 <div id="choreographyList" class="choreography-list">
@@ -207,29 +225,35 @@
             </div>
 
             <div id="peopleTab" class="tab-content">
-                <div class="section-title" data-i18n="people.add.title">Add New Person</div>
+                <div class="section-title collapsible-header" id="personFormToggle">
+                    <span data-i18n="people.add.title">Add New Person</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
 
-                <div class="add-person-form">
-                    <div class="form-group">
-                        <label data-i18n="people.add.name">Name:</label>
-                        <input type="text" id="newPersonName" data-i18n-placeholder="people.add.name.placeholder" placeholder="Person name...">
+                <div id="personFormBody" class="collapsible-body">
+                    <div class="add-person-form" style="margin-top: 10px;">
+                        <div class="form-group">
+                            <label data-i18n="people.add.name">Name:</label>
+                            <input type="text" id="newPersonName" data-i18n-placeholder="people.add.name.placeholder" placeholder="Person name...">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="people.add.letter">Letter:</label>
+                            <input type="text" id="newPersonLetter" data-i18n-placeholder="people.add.letter.placeholder" placeholder="Person letter...">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="people.add.color">Color:</label>
+                            <input type="color" id="newPersonColor" value="#3498db">
+                        </div>
+                        <button class="btn-success" id="addPerson" style="width: 100%;" data-i18n-title="people.add.button"><i class="fas fa-plus"></i></button>
+                        <input type="file" id="csvPersonFileInput" accept=".csv" style="display: none;">
+                        <button id="importPersonCsvBtn" style="width: 100%; margin-top: 6px;" data-i18n-title="people.import.button"><i class="fas fa-file-csv"></i></button>
                     </div>
-                    <div class="form-group">
-                        <label data-i18n="people.add.letter">Letter:</label>
-                        <input type="text" id="newPersonLetter" data-i18n-placeholder="people.add.letter.placeholder" placeholder="Person letter...">
-                    </div>
-                    <div class="form-group">
-                        <label data-i18n="people.add.color">Color:</label>
-                        <input type="color" id="newPersonColor" value="#3498db">
-                    </div>
-                    <button class="btn-success" id="addPerson" style="width: 100%;" data-i18n-title="people.add.button"><i class="fas fa-plus"></i></button>
-                    <input type="file" id="csvPersonFileInput" accept=".csv" style="display: none;">
-                    <button id="importPersonCsvBtn" style="width: 100%; margin-top: 6px;" data-i18n-title="people.import.button"><i class="fas fa-file-csv"></i></button>
                 </div>
 
                 <div class="section-title" data-i18n="people.list.title">People (Click to design route)</div>
                 <div id="personList" class="person-list"></div>
             </div>
+        </div>
         </div>
     </div>
 </div>
@@ -342,6 +366,26 @@
 </div>
 
 <div id="pickStartingPointBanner" class="pick-pivot-banner hidden" data-i18n="copyRoute.pickStartingPoint.banner">Click on the canvas to set the starting point — press Escape to cancel</div>
+
+<div id="drawStepsModal" class="modal-overlay hidden">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <span data-i18n="drawMode.modal.title">Distribute Path as Steps</span>
+            <button class="modal-close" id="drawStepsModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label data-i18n="drawMode.modal.stepsLabel">Steps to distribute along the path:</label>
+                <input type="number" id="drawStepsCount" min="1" value="4" style="width:100%;">
+                <div id="drawStepsInfo" style="font-size:12px; color:#7f8c8d; margin-top:4px;"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="drawStepsCancel" data-i18n="drawMode.modal.cancel">Cancel</button>
+            <button class="btn-success" id="drawStepsConfirm" data-i18n="drawMode.modal.confirm">Apply</button>
+        </div>
+    </div>
+</div>
 
 <div id="copyRouteModal" class="modal-overlay hidden">
     <div class="modal-dialog">
