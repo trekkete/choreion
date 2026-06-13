@@ -46,7 +46,7 @@ export function renderChoreographyList() {
             <div class="empty-state">
                 <div class="empty-state-icon"><i class="fas fa-theater-masks"></i></div>
                 <div>No choreographies yet</div>
-                <div style="font-size: 12px;">Create one by designing routes and clicking Save</div>
+                <div class="text-sm">Create one by designing routes and clicking Save</div>
             </div>
         `;
         return;

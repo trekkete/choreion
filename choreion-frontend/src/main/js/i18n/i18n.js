@@ -101,7 +101,9 @@ function updateUI() {
     // Update elements with data-i18n-title attribute
     document.querySelectorAll('[data-i18n-title]').forEach(element => {
         const key = element.getAttribute('data-i18n-title');
-        element.title = t(key);
+        const text = t(key);
+        element.title = text;
+        element.setAttribute('aria-label', text);
     });
 }
 

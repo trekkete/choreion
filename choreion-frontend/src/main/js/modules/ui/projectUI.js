@@ -34,7 +34,7 @@ export function renderProjectList() {
             <div class="empty-state">
                 <div class="empty-state-icon"><i class="fas fa-folder"></i></div>
                 <div>No projects yet</div>
-                <div style="font-size: 12px;">${message}</div>
+                <div class="text-sm">${message}</div>
             </div>
         `;
         return;
@@ -53,7 +53,7 @@ export function renderProjectList() {
             <div class="choreography-item-header">
                 <div>
                     <div class="choreography-name">${project.name}</div>
-                    ${project.description ? `<div style="font-size: 11px; color: #7f8c8d;">${project.description}</div>` : ''}
+                    ${project.description ? `<div class="text-sm" style="color:var(--color-muted);">${project.description}</div>` : ''}
                     <div class="choreography-date">${dateStr}</div>
                 </div>
             </div>

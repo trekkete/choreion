@@ -15,7 +15,7 @@ import { renderPersonList, addPerson, removePerson, renderUserMappings, importPe
 import { showAdminPanel, hideAdminPanel, createNewUser, loadAdminMappingData, onProjectChange, createAdminMapping } from "./modules/ui/adminUI.js";
 import { showStatus } from "./modules/ui/statusUI.js";
 import { showLoginScreen, showProjectSelection, showApp, isMobile } from "./modules/utils/screenUtils.js";
-import { snapToGrid } from "./modules/utils/gridUtils.js";
+import { snapToGrid, samplePathUniform } from "./modules/utils/gridUtils.js";
 import { initializeStage, getStage, getLayer, getGridLayer, zoomIn, zoomOut, resetZoom, setPanEnabled } from "./modules/canvas/stage.js";
 import { drawGrid } from "./modules/canvas/grid.js";
 import { createPerson, createPeopleFromData, addPersonToCanvas, removePersonFromCanvas, resetPositions } from "./modules/canvas/person.js";
@@ -227,15 +227,20 @@ function selectPerson(id, index) {
     redrawRoutes();
 }
 
+function setButtonState(id, icon, i18nKey, active) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.innerHTML = `<i class="${icon}"></i>`;
+    btn.setAttribute('data-i18n-title', i18nKey);
+    const label = t(i18nKey);
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.classList.toggle('btn-mode-active', active);
+}
+
 function toggleSnapping() {
     const enabled = State.toggleSnapToGrid();
-    const btn = document.getElementById('toggleSnapping');
-    if (btn) {
-        btn.innerHTML = '<i class="fas fa-magnet"></i>';
-        btn.setAttribute('data-i18n-title', enabled ? 'controls.snapToGrid.on' : 'controls.snapToGrid.off');
-        btn.title = t(enabled ? 'controls.snapToGrid.on' : 'controls.snapToGrid.off');
-        btn.classList.toggle('btn-mode-active', enabled);
-    }
+    setButtonState('toggleSnapping', 'fas fa-magnet', enabled ? 'controls.snapToGrid.on' : 'controls.snapToGrid.off', enabled);
 }
 
 function toggleGrid() {
@@ -244,8 +249,7 @@ function toggleGrid() {
     if (gridLayer) {
         drawGrid(gridLayer, null, null, visible);
     }
-    const btn = document.getElementById('toggleGrid');
-    if (btn) btn.classList.toggle('btn-mode-active', visible);
+    setButtonState('toggleGrid', 'fas fa-border-all', 'controls.toggleGrid', visible);
 }
 
 function toggleCollapsible(bodyId, toggleId) {
@@ -280,6 +284,7 @@ function deleteLastStep() {
 
 let pickingStartingPoint = false;
 let copyStartingPoint = null;
+let cachedMirrorParams = { fromId: NaN, mirrorX: false, mirrorY: false, mirrorMode: 'route' };
 
 function openCopyRouteModal() {
     const people = State.getPeople();
@@ -310,6 +315,7 @@ function openCopyRouteModal() {
     document.getElementById('startingPointDisplay').textContent = t('copyRoute.startingPoint.none');
 
     document.getElementById('copyRouteModal').classList.remove('hidden');
+    refreshMirrorParamsCache();
 }
 
 function closeCopyRouteModal() {
@@ -358,12 +364,17 @@ function finishPickStartingPoint(x, y) {
     document.getElementById('copyRouteModal').classList.remove('hidden');
 }
 
+function refreshMirrorParamsCache() {
+    cachedMirrorParams = {
+        fromId: parseInt(document.getElementById('copyRouteFrom')?.value, 10),
+        mirrorX: document.getElementById('mirrorHorizontal')?.checked || false,
+        mirrorY: document.getElementById('mirrorVertical')?.checked || false,
+        mirrorMode: document.querySelector('input[name="mirrorMode"]:checked')?.value || 'route'
+    };
+}
+
 function getMirrorPreviewParams() {
-    const fromId = parseInt(document.getElementById('copyRouteFrom')?.value, 10);
-    const mirrorX = document.getElementById('mirrorHorizontal')?.checked || false;
-    const mirrorY = document.getElementById('mirrorVertical')?.checked || false;
-    const mirrorMode = document.querySelector('input[name="mirrorMode"]:checked')?.value || 'route';
-    return { fromId, mirrorX, mirrorY, mirrorMode };
+    return cachedMirrorParams;
 }
 
 function toggleMode() {
@@ -378,7 +389,6 @@ function toggleMode() {
 
     State.setMode(newMode);
 
-    const btn = document.getElementById('toggleMode');
     const info = document.getElementById('modeInfo');
     const playbackControls = document.getElementById('playbackControls');
     const designControls = document.getElementById('designControls');
@@ -387,16 +397,8 @@ function toggleMode() {
         // Reset draw mode when leaving design mode
         clearDrawState();
         State.setInputMode('click');
-        const inputModeBtn = document.getElementById('toggleInputMode');
-        if (inputModeBtn) {
-            inputModeBtn.innerHTML = '<i class="fas fa-mouse-pointer"></i>';
-            inputModeBtn.classList.remove('btn-mode-active');
-        }
-
-        if (btn) {
-            btn.setAttribute('data-i18n-title', 'button.switch.design');
-            btn.innerHTML = '<i class="fas fa-edit"></i>';
-        }
+        setButtonState('toggleInputMode', 'fas fa-mouse-pointer', 'controls.inputMode.click', false);
+        setButtonState('toggleMode', 'fas fa-edit', 'button.switch.design', false);
         if (info) info.innerHTML = `<strong data-i18n="mode.playback">${t('mode.playback')}:</strong> <span data-i18n="mode.playback.info">${t('mode.playback.info')}</span>`;
         if (playbackControls) playbackControls.classList.remove('hidden');
         if (designControls) designControls.classList.add('hidden');
@@ -411,10 +413,7 @@ function toggleMode() {
             layer.batchDraw();
         }
     } else {
-        if (btn) {
-            btn.setAttribute('data-i18n-title', 'button.switch.playback');
-            btn.innerHTML = '<i class="fas fa-eye"></i>';
-        }
+        setButtonState('toggleMode', 'fas fa-eye', 'button.switch.playback', false);
         if (info) info.innerHTML = `<strong data-i18n="mode.design">${t('mode.design')}:</strong> <span data-i18n="mode.design.info">${t('mode.design.info')}</span>`;
         if (playbackControls) playbackControls.classList.add('hidden');
         if (designControls) designControls.classList.remove('hidden');
@@ -490,19 +489,10 @@ function toggleInputMode() {
         clearDrawState();
     }
 
-    const btn = document.getElementById('toggleInputMode');
-    if (btn) {
-        if (next === 'draw') {
-            btn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
-            btn.setAttribute('data-i18n-title', 'controls.inputMode.draw');
-            btn.title = t('controls.inputMode.draw');
-            btn.classList.add('btn-mode-active');
-        } else {
-            btn.innerHTML = '<i class="fas fa-mouse-pointer"></i>';
-            btn.setAttribute('data-i18n-title', 'controls.inputMode.click');
-            btn.title = t('controls.inputMode.click');
-            btn.classList.remove('btn-mode-active');
-        }
+    if (next === 'draw') {
+        setButtonState('toggleInputMode', 'fas fa-pencil-alt', 'controls.inputMode.draw', true);
+    } else {
+        setButtonState('toggleInputMode', 'fas fa-mouse-pointer', 'controls.inputMode.click', false);
     }
 
     const info = document.getElementById('modeInfo');
@@ -513,37 +503,6 @@ function toggleInputMode() {
             info.innerHTML = `<strong>${t('mode.design')}:</strong> <span>${t('mode.design.info')}</span>`;
         }
     }
-}
-
-function samplePathUniform(points, n) {
-    if (!points || points.length === 0 || n <= 0) return [];
-    if (points.length === 1) return Array.from({ length: n }, () => ({ ...points[0] }));
-    if (n === 1) return [{ ...points[points.length - 1] }];
-
-    const lengths = [0];
-    for (let i = 1; i < points.length; i++) {
-        const dx = points[i].x - points[i - 1].x;
-        const dy = points[i].y - points[i - 1].y;
-        lengths.push(lengths[i - 1] + Math.hypot(dx, dy));
-    }
-    const totalLength = lengths[lengths.length - 1];
-    if (totalLength === 0) return Array.from({ length: n }, () => ({ ...points[0] }));
-
-    const result = [];
-    for (let i = 0; i < n; i++) {
-        const targetLen = (i / (n - 1)) * totalLength;
-        let segIdx = 1;
-        while (segIdx < lengths.length - 1 && lengths[segIdx] < targetLen) {
-            segIdx++;
-        }
-        const segStart = lengths[segIdx - 1];
-        const segEnd = lengths[segIdx];
-        const ratio = segEnd === segStart ? 0 : (targetLen - segStart) / (segEnd - segStart);
-        const x = points[segIdx - 1].x + ratio * (points[segIdx].x - points[segIdx - 1].x);
-        const y = points[segIdx - 1].y + ratio * (points[segIdx].y - points[segIdx - 1].y);
-        result.push({ x: snapToGrid(x), y: snapToGrid(y) });
-    }
-    return result;
 }
 
 function openDrawStepsModal() {
@@ -593,6 +552,7 @@ function confirmDrawSteps() {
     const remaining = maxSteps - currentSteps;
     const stepsToAdd = Math.min(n, remaining);
 
+    if (!routes[selectedPerson.id]) routes[selectedPerson.id] = [];
     const sampled = samplePathUniform(pendingDrawPath, stepsToAdd);
     sampled.forEach(pt => routes[selectedPerson.id].push(pt));
 
@@ -612,7 +572,6 @@ function setupEventListeners() {
     stage.on('mousedown', (e) => {
         if (State.getMode() !== 'design') return;
         if (State.getInputMode() !== 'draw') return;
-        if (e.target !== stage) return;
 
         const selectedPerson = State.getSelectedPerson();
         if (!selectedPerson) {
@@ -632,7 +591,7 @@ function setupEventListeners() {
         isDrawing = true;
         rawDrawPath = [];
         const pos = stage.getPointerPosition();
-        rawDrawPath.push({ x: pos.x, y: pos.y });
+        rawDrawPath.push({ x: snapToGrid(pos.x), y: snapToGrid(pos.y) });
     });
 
     // Canvas mouseup - finish draw mode path
@@ -685,7 +644,7 @@ function setupEventListeners() {
         if (State.getMode() !== 'design') return;
 
         const routes = State.getRoutes();
-        var currentSteps = routes[selectedPerson.id] ? routes[selectedPerson.id].length : 0;
+        let currentSteps = routes[selectedPerson.id] ? routes[selectedPerson.id].length : 0;
         const maxSteps = State.getCurrentChoreographySteps();
 
         if (currentSteps >= maxSteps) {
@@ -698,6 +657,7 @@ function setupEventListeners() {
         const snappedY = snapToGrid(pos.y);
         currentSteps += 1;
 
+        if (!routes[selectedPerson.id]) routes[selectedPerson.id] = [];
         routes[selectedPerson.id].push({ x: snappedX, y: snappedY });
         State.setHasUnsavedChanges(true);
 
@@ -851,7 +811,30 @@ function setupEventListeners() {
             const anyChecked = document.getElementById('mirrorHorizontal').checked
                 || document.getElementById('mirrorVertical').checked;
             document.getElementById('mirrorModeGroup').style.display = anyChecked ? 'block' : 'none';
+            refreshMirrorParamsCache();
         });
+    });
+    document.querySelectorAll('input[name="mirrorMode"]').forEach(radio => {
+        radio.addEventListener('change', refreshMirrorParamsCache);
+    });
+
+    // Cancel draw if mouse is released outside the canvas
+    document.addEventListener('mouseup', () => {
+        if (isDrawing) clearDrawState();
+    });
+
+    // Escape key: cancel starting-point picking or close draw steps modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        if (pickingStartingPoint) {
+            pickingStartingPoint = false;
+            document.getElementById('pickStartingPointBanner').classList.add('hidden');
+            document.body.style.cursor = '';
+            clearRoutePreview();
+            document.getElementById('copyRouteModal').classList.remove('hidden');
+        } else if (!document.getElementById('drawStepsModal')?.classList.contains('hidden')) {
+            closeDrawStepsModal();
+        }
     });
 
     // Zoom control event listeners
@@ -991,20 +974,6 @@ window.addEventListener('stageResize', (event) => {
 
     // Redraw routes with new coordinates
     redrawRoutes();
-});
-
-// Escape key: cancel starting-point picking or close draw steps modal
-document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    if (pickingStartingPoint) {
-        pickingStartingPoint = false;
-        document.getElementById('pickStartingPointBanner').classList.add('hidden');
-        document.body.style.cursor = '';
-        clearRoutePreview();
-        document.getElementById('copyRouteModal').classList.remove('hidden');
-    } else if (!document.getElementById('drawStepsModal')?.classList.contains('hidden')) {
-        closeDrawStepsModal();
-    }
 });
 
 // ============= DOM Ready =============

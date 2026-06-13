@@ -11,6 +11,7 @@ import {
     setHasUnsavedChanges
 } from '../state.js';
 import { showStatus } from './statusUI.js';
+import { t } from '../../i18n/i18n.js';
 
 /**
  * Render the person list in the sidebar
@@ -28,7 +29,7 @@ export function renderPersonList() {
             <div class="empty-state">
                 <div class="empty-state-icon">👥</div>
                 <div>No people yet</div>
-                <div style="font-size: 12px;">Add people to start creating choreographies</div>
+                <div class="text-sm">Add people to start creating choreographies</div>
             </div>
         `;
         return;
@@ -129,7 +130,7 @@ export async function importPeopleFromCsv(file) {
             }
 
             if (peopleData.length === 0) {
-                showStatus('No valid people found in CSV', 'error');
+                showStatus(t('status.csv.empty'), 'error');
                 resolve();
                 return;
             }
@@ -145,7 +146,7 @@ export async function importPeopleFromCsv(file) {
                 });
 
                 renderPersonList();
-                showStatus(`Imported ${saved.length} people successfully!`, 'success');
+                showStatus(t('status.csv.imported', { count: saved.length }), 'success');
                 resolve();
             } catch (error) {
                 console.error('Error importing people:', error);
@@ -196,7 +197,7 @@ export function renderUserMappings(userMappings) {
     if (userMappings.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-                <div style="font-size: 12px;">No character mappings yet. Click "Map to Me" on a person to create one.</div>
+                <div class="text-sm">No character mappings yet. Click "Map to Me" on a person to create one.</div>
             </div>
         `;
         return;
@@ -212,7 +213,7 @@ export function renderUserMappings(userMappings) {
                 <div class="person-color-box" style="background: ${mapping.personColor};"></div>
                 <div>
                     <div class="person-name">${mapping.personName}</div>
-                    ${mapping.choreographyName ? `<div style="font-size: 11px; color: #7f8c8d;">${mapping.choreographyName}</div>` : ''}
+                    ${mapping.choreographyName ? `<div class="text-sm" style="color:var(--color-muted);">${mapping.choreographyName}</div>` : ''}
                 </div>
                 ${mapping.isPrimary ? '<span class="user-mapping-badge">Primary</span>' : ''}
             </div>

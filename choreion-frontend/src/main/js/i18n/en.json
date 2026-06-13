@@ -121,6 +121,8 @@
   "status.choreography.error.steps": "Please enter a valid number of steps",
   "status.choreography.error.select": "Please select a choreography to delete",
 
+  "status.csv.empty": "No valid people found in CSV",
+  "status.csv.imported": "Imported {count} people successfully!",
   "status.person.added": "Person added successfully!",
   "status.person.removed": "Person removed successfully!",
   "status.person.error.add": "Error adding person",
