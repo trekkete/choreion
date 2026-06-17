@@ -16,9 +16,10 @@ import {
     getAnimationFrame,
     setAnimationFrame,
     resetAnimationState,
-    getCurrentChoreographySteps
+    getCurrentChoreographySteps,
+    getFocusPersonId
 } from '../state.js';
-import { getLayer } from './stage.js';
+import { getLayer, keepContentPointVisible } from './stage.js';
 import { resetPositions } from './person.js';
 import { t } from '../../i18n/i18n.js';
 
@@ -131,6 +132,14 @@ function animate() {
         person.label.x(x - 6);
         person.label.y(y - 7);
     });
+
+    const focusId = getFocusPersonId();
+    if (focusId !== null) {
+        const focusPerson = people.find(p => p.id === focusId);
+        if (focusPerson) {
+            keepContentPointVisible(focusPerson.circle.x(), focusPerson.circle.y());
+        }
+    }
 
     if (layer) {
         layer.batchDraw();

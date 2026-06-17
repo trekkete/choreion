@@ -206,6 +206,17 @@ export function clearSelectedPerson() {
     selectedPerson = null;
 }
 
+// ============= Camera Focus State (mobile playback) =============
+let focusPersonId = null;
+
+export function setFocusPersonId(id) {
+    focusPersonId = id;
+}
+
+export function getFocusPersonId() {
+    return focusPersonId;
+}
+
 // ============= Animation State =============
 let isPlaying = false;
 let animationTime = 0;
@@ -302,6 +313,7 @@ export function resetProjectState() {
     choreographies = [];
     selectedPerson = null;
     currentChoreographyId = null;
+    focusPersonId = null;
 }
 
 export function resetAllState() {

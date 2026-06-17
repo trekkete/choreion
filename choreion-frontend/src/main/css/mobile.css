@@ -1,0 +1,163 @@
+/* ============================================================
+   Mobile playback view — fully self-contained, no dependency on
+   shared.css. Intentionally duplicates the handful of tokens it
+   needs so it can be edited in isolation from the desktop editor.
+   ============================================================ */
+:root {
+    --color-primary:  #3498db;
+    --color-dark:     #2c3e50;
+    --color-danger:   #e74c3c;
+    --color-white:    #ffffff;
+    --radius-md:      8px;
+    --radius-lg:      14px;
+    --shadow-md:      0 2px 10px rgba(0,0,0,0.25);
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: var(--font-family);
+    background: var(--color-dark);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ============================================================
+   Canvas
+   ============================================================ */
+.canvas-wrapper {
+    position: fixed;
+    inset: 0;
+    touch-action: none;
+    background: var(--color-white);
+}
+
+#container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* ============================================================
+   Floating bars
+   ============================================================ */
+.mobile-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: env(safe-area-inset-top, 10px) 10px 10px 10px;
+    z-index: 10;
+}
+
+.mobile-bar--top {
+    top: 0;
+    padding-top: max(10px, env(safe-area-inset-top));
+}
+
+.mobile-bar--bottom {
+    bottom: 0;
+    padding-top: 10px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    justify-content: center;
+}
+
+.mobile-select {
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    padding: 0 10px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: rgba(255,255,255,0.92);
+    color: var(--color-dark);
+    font-size: 14px;
+    box-shadow: var(--shadow-md);
+}
+
+.mobile-top-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.mobile-icon-btn {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--radius-md);
+    background: rgba(255,255,255,0.92);
+    color: var(--color-dark);
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+}
+
+.mobile-icon-btn--large {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    font-size: 20px;
+    background: var(--color-primary);
+    color: var(--color-white);
+}
+
+#stop.mobile-icon-btn--large {
+    background: var(--color-danger);
+    width: 48px;
+    height: 48px;
+}
+
+.mobile-time-display {
+    color: var(--color-white);
+    background: rgba(0,0,0,0.45);
+    padding: 6px 12px;
+    border-radius: var(--radius-lg);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* ============================================================
+   Loading screen
+   ============================================================ */
+.mobile-loading {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-dark);
+}
+
+.mobile-spinner {
+    width: 36px;
+    height: 36px;
+    border: 4px solid rgba(255,255,255,0.25);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: mobile-spin 0.8s linear infinite;
+}
+
+@keyframes mobile-spin {
+    to { transform: rotate(360deg); }
+}

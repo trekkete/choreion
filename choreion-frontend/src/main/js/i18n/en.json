@@ -195,5 +195,10 @@
   "confirm.routes.clearAll": "Clear all routes? This cannot be undone.",
   "confirm.unsavedChanges": "You have unsaved changes. If you switch projects, all unsaved changes will be lost. Continue?",
 
-  "prompt.role.enter": "Enter new role (ROLE_USER, ROLE_CHOREOGRAPHER, or ROLE_ADMIN):"
+  "prompt.role.enter": "Enter new role (ROLE_USER, ROLE_CHOREOGRAPHER, or ROLE_ADMIN):",
+
+  "mobile.choreography.empty": "No choreographies",
+  "mobile.person.none": "No focus",
+  "mobile.person.empty": "No people assigned",
+  "mobile.logout": "Logout"
 }

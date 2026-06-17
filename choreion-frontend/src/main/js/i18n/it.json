@@ -195,5 +195,10 @@
   "confirm.routes.clearAll": "Cancellare tutti i percorsi? Questa azione non può essere annullata.",
   "confirm.unsavedChanges": "Hai modifiche non salvate. Se cambi progetto, tutte le modifiche non salvate andranno perse. Continuare?",
 
-  "prompt.role.enter": "Inserisci il nuovo ruolo (ROLE_USER, ROLE_CHOREOGRAPHER o ROLE_ADMIN):"
+  "prompt.role.enter": "Inserisci il nuovo ruolo (ROLE_USER, ROLE_CHOREOGRAPHER o ROLE_ADMIN):",
+
+  "mobile.choreography.empty": "Nessuna coreografia",
+  "mobile.person.none": "Nessun focus",
+  "mobile.person.empty": "Nessuna persona assegnata",
+  "mobile.logout": "Esci"
 }

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Choreion</title>
+    <script src="https://unpkg.com/konva@10/konva.min.js" defer></script>
+    <script type="module" src="js/mobile.js"></script>
+    <link rel="stylesheet" href="css/mobile.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+<div id="mobileLoadingScreen" class="mobile-loading">
+    <div class="mobile-spinner"></div>
+</div>
+
+<div class="canvas-wrapper">
+    <div id="container"></div>
+</div>
+
+<div id="mobileTopBar" class="mobile-bar mobile-bar--top">
+    <select id="mobileChoreographySelect" class="mobile-select"></select>
+    <select id="mobilePersonSelect" class="mobile-select"></select>
+    <div class="mobile-top-actions">
+        <button id="mobileLanguageToggle" class="mobile-icon-btn" title="EN/IT" aria-label="Toggle language">EN</button>
+        <button id="mobileLogoutBtn" class="mobile-icon-btn" data-i18n-title="mobile.logout"><i class="fas fa-sign-out-alt"></i></button>
+    </div>
+</div>
+
+<div id="mobileBottomBar" class="mobile-bar mobile-bar--bottom">
+    <button id="playPause" class="mobile-icon-btn mobile-icon-btn--large" data-i18n-title="controls.play"><i class="fas fa-play"></i></button>
+    <button id="stop" class="mobile-icon-btn mobile-icon-btn--large" data-i18n-title="controls.stop"><i class="fas fa-stop"></i></button>
+    <span id="timeDisplay" class="mobile-time-display">0 / 8</span>
+</div>
+
+</body>
+</html>

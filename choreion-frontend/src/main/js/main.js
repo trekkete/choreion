@@ -67,6 +67,11 @@ function selectProject(projectId) {
     State.setCurrentProjectId(projectId);
     State.setHasUnsavedChanges(false);
 
+    if (isMobile()) {
+        window.location.href = 'mobile.html';
+        return;
+    }
+
     // Set the project title
     const project = State.getProjectById(projectId);
     if (project) {
@@ -111,6 +116,10 @@ async function checkAuth() {
 
     const projectId = State.restoreProjectId();
     if (projectId) {
+        if (isMobile()) {
+            window.location.href = 'mobile.html';
+            return;
+        }
         await loadProjectList();
         const project = State.getProjectById(projectId);
         if (project) {
@@ -982,17 +991,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize i18n system
     await initI18n();
 
-    // Hide loading screen after 2 seconds
-    setTimeout(() => {
-        const loadingScreen = document.getElementById('loadingScreen');
-        if (loadingScreen) {
-            loadingScreen.classList.add('hidden');
-            showLoginScreen();
-        }
-    }, 2000);
+    // Show the loading screen for at least 2 seconds, but never force the
+    // login screen back over an already-restored session (checkAuth may
+    // navigate away or reveal the app/project-selection screen on its own).
+    const minLoadingTime = new Promise(resolve => setTimeout(resolve, 2000));
+    await Promise.all([minLoadingTime, checkAuth()]);
 
-    // Check if already logged in
-    checkAuth();
+    document.getElementById('loadingScreen')?.classList.add('hidden');
+    if (!Auth.isAuthenticated()) {
+        showLoginScreen();
+    }
 
     // Login form
     document.getElementById('loginForm')?.addEventListener('submit', async (e) => {

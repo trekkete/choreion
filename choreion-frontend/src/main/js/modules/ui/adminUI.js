@@ -108,6 +108,7 @@ export async function createNewUser() {
 
         // Reload users list
         await loadAllUsers();
+        await populateMappingUserSelect();
     } catch (error) {
         showAdminStatus('Error creating user: ' + error.message, 'error');
     }
@@ -155,22 +156,35 @@ async function deleteUserAdmin(userId) {
 // ============= Mapping Management =============
 
 /**
+ * Populate the user dropdown in the mapping form
+ */
+export async function populateMappingUserSelect() {
+    const userSelect = document.getElementById('adminMappingUserId');
+    if (!userSelect) return;
+
+    const previousValue = userSelect.value;
+    const users = await Api.fetchAllUsers();
+
+    userSelect.innerHTML = '<option value="">Select a user...</option>';
+    users.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = `${user.fullName} (@${user.username})`;
+        userSelect.appendChild(option);
+    });
+
+    if (previousValue && users.some(u => String(u.id) === previousValue)) {
+        userSelect.value = previousValue;
+    }
+}
+
+/**
  * Load admin mapping data (users, projects, mappings)
  */
 export async function loadAdminMappingData() {
     try {
         // Load all users for dropdown
-        const users = await Api.fetchAllUsers();
-        const userSelect = document.getElementById('adminMappingUserId');
-        if (userSelect) {
-            userSelect.innerHTML = '<option value="">Select a user...</option>';
-            users.forEach(user => {
-                const option = document.createElement('option');
-                option.value = user.id;
-                option.textContent = `${user.fullName} (@${user.username})`;
-                userSelect.appendChild(option);
-            });
-        }
+        await populateMappingUserSelect();
 
         // Load all projects for dropdown
         const allProjects = await Api.fetchProjects();

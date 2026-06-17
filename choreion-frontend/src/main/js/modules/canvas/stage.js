@@ -277,6 +277,98 @@ export function resetZoom() {
     window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: 1 } }));
 }
 
+let focusTween = null;
+
+/**
+ * Center a content-space point in the viewport at the given zoom level
+ * (clamped to the allowed zoom/pan range), animating smoothly rather than
+ * snapping. Used to "zoom to" a focused person on mobile playback.
+ */
+export function focusOnContentPoint(x, y, zoom = null) {
+    if (!stage) return;
+
+    const targetZoom = zoom !== null
+        ? Math.max(getMinZoom(), Math.min(MAX_ZOOM, zoom))
+        : currentZoom;
+
+    const pos = getClampedPosition({
+        x: stage.width()  / 2 - x * targetZoom,
+        y: stage.height() / 2 - y * targetZoom,
+    }, targetZoom);
+
+    currentZoom = targetZoom;
+
+    if (focusTween) {
+        focusTween.destroy();
+        focusTween = null;
+    }
+
+    focusTween = new Konva.Tween({
+        node: stage,
+        x: pos.x,
+        y: pos.y,
+        scaleX: targetZoom,
+        scaleY: targetZoom,
+        duration: 0.35,
+        easing: Konva.Easings.EaseInOut,
+        onFinish: () => { focusTween = null; },
+    });
+    focusTween.play();
+
+    window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: currentZoom } }));
+}
+
+let followActive = false;
+
+/**
+ * Ease the camera toward centering a content-space point once it strays
+ * outside a margin from the viewport edges. Used to "follow" a moving
+ * person only once they'd otherwise drift off-screen at high zoom.
+ *
+ * Once triggered, stays active and keeps easing all the way to dead-center
+ * — recomputed every call, so it tracks a moving person — rather than
+ * re-checking the margin each frame. Re-checking would otherwise turn this
+ * off after the very first (small) easing step already pulls the point
+ * back inside the margin, producing a burst of tiny corrections instead of
+ * one continuous glide.
+ */
+export function keepContentPointVisible(x, y, marginRatio = 0.32, smoothing = 0.12) {
+    if (!stage || focusTween) return;
+
+    const scale  = stage.scaleX();
+    const stageW = stage.width();
+    const stageH = stage.height();
+    const margin = marginRatio * Math.min(stageW, stageH);
+
+    const screenX = x * scale + stage.x();
+    const screenY = y * scale + stage.y();
+
+    const outOfBounds = screenX < margin || screenX > stageW - margin
+        || screenY < margin || screenY > stageH - margin;
+    if (outOfBounds) followActive = true;
+    if (!followActive) return;
+
+    const target = getClampedPosition({
+        x: stageW / 2 - x * scale,
+        y: stageH / 2 - y * scale,
+    }, scale);
+
+    const current = stage.position();
+    const dx = target.x - current.x;
+    const dy = target.y - current.y;
+
+    if (Math.hypot(dx, dy) < 0.5) {
+        stage.position(target);
+        followActive = false;
+    } else {
+        stage.position({
+            x: current.x + dx * smoothing,
+            y: current.y + dy * smoothing,
+        });
+    }
+    stage.batchDraw();
+}
+
 let panEnabled = true;
 
 export function setPanEnabled(enabled) {
@@ -351,4 +443,9 @@ export function cleanupStage() {
         gridLayer = null;
     }
     currentZoom = 1;
+    followActive = false;
+    if (focusTween) {
+        focusTween.destroy();
+        focusTween = null;
+    }
 }
