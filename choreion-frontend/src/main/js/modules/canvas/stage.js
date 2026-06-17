@@ -3,488 +3,352 @@
  * Handles Konva.js stage and layer initialization with responsive sizing
  */
 
-import { GRID_SIZE, getResponsiveGridSize, DEFAULT_GRID_SIZE } from '../constants.js';
+import { GRID_SIZE, getResponsiveGridSize, DEFAULT_GRID_SIZE, getResponsiveGridSpacing } from '../constants.js';
 
-let stage = null;
-let layer = null;
+let stage     = null;
+let layer     = null;
 let gridLayer = null;
 let currentGridSize = GRID_SIZE;
-let resizeListener = null;
+let resizeListener  = null;
+let resizeObserver  = null;
 
-// Zoom and pan state
+// Zoom state
 let currentZoom = 1;
-const MIN_ZOOM = 0.5;
-const MAX_ZOOM = 3;
-const ZOOM_STEP = 0.05;
+const MAX_ZOOM         = 6;
+const ZOOM_FACTOR      = 1.12;   // multiplicative step — smoother than additive
+const ZOOM_OUT_MARGIN  = 0.92;   // at min zoom, the grid still fills ~92% of the limiting viewport dimension
 
 /**
- * Initialize the Konva stage and layers
- * @returns {Object} Stage and layers
+ * The most you're allowed to zoom out: just enough that the grid still
+ * fills the viewport with a small margin, rather than shrinking into a
+ * tiny square surrounded by empty canvas.
  */
-export function initializeStage() {
-    if (stage) {
-        // Already initialized
-        return { stage, layer, gridLayer };
+function getMinZoom() {
+    if (!stage) return 1;
+    const fitScale = Math.min(stage.width(), stage.height()) / currentGridSize;
+    return Math.min(1, fitScale) * ZOOM_OUT_MARGIN;
+}
+
+/**
+ * The position that centers the grid inside the stage at scale=1.
+ * Using stage.position() for centering (not CSS) keeps the Konva
+ * coordinate system self-consistent: content coords are always in
+ * [0, gridSize] regardless of viewport size.
+ */
+function getCenteredPosition() {
+    return {
+        x: (stage.width()  - currentGridSize) / 2,
+        y: (stage.height() - currentGridSize) / 2,
+    };
+}
+
+/**
+ * Clamp a candidate stage position at a given scale so the grid can
+ * never be panned past its own edges. When the scaled grid is smaller
+ * than the viewport on an axis, that axis is locked centered (nothing
+ * to pan there); otherwise the position is clamped so the grid always
+ * fully covers the viewport on that axis.
+ */
+function getClampedPosition(pos, scale) {
+    const scaledGrid = currentGridSize * scale;
+    const stageW = stage.width();
+    const stageH = stage.height();
+
+    let x;
+    if (scaledGrid <= stageW) {
+        x = (stageW - scaledGrid) / 2;
+    } else {
+        x = Math.min(0, Math.max(stageW - scaledGrid, pos.x));
     }
 
-    // Calculate initial responsive grid size
+    let y;
+    if (scaledGrid <= stageH) {
+        y = (stageH - scaledGrid) / 2;
+    } else {
+        y = Math.min(0, Math.max(stageH - scaledGrid, pos.y));
+    }
+
+    return { x, y };
+}
+
+/**
+ * Initialize the Konva stage and layers.
+ * Stage fills the canvas-wrapper; grid is centered via stage.position().
+ */
+export function initializeStage() {
+    if (stage) return { stage, layer, gridLayer };
+
     currentGridSize = getResponsiveGridSize();
+
+    const wrapper     = document.querySelector('.canvas-wrapper');
+    const stageWidth  = wrapper ? wrapper.clientWidth  : currentGridSize;
+    const stageHeight = wrapper ? wrapper.clientHeight : currentGridSize;
 
     stage = new Konva.Stage({
         container: 'container',
-        width: currentGridSize,
-        height: currentGridSize
+        width:  stageWidth,
+        height: stageHeight,
     });
 
     gridLayer = new Konva.Layer();
-    layer = new Konva.Layer();
-
+    layer     = new Konva.Layer();
     stage.add(gridLayer);
     stage.add(layer);
 
-    // Set up resize listener
-    setupResizeListener();
+    // Center the grid in the viewport at default zoom
+    stage.position(getCenteredPosition());
 
-    // Enable dragging for panning (will be controlled by mode)
+    setupResizeListener();
     setupZoomAndPan();
 
     return { stage, layer, gridLayer };
 }
 
+export function getCurrentGridSize() { return currentGridSize; }
+export function getCurrentZoom()     { return currentZoom; }
+export function getStage()           { return stage; }
+export function getLayer()           { return layer; }
+export function getGridLayer()       { return gridLayer; }
+
 /**
- * Get current grid size
- * @returns {number} Current grid size
+ * Convert a stage-container pointer position to content (grid) coordinates.
+ * Always use this instead of raw stage.getPointerPosition().
  */
-export function getCurrentGridSize() {
-    return currentGridSize;
+export function pointerToContent(screenPos) {
+    return {
+        x: (screenPos.x - stage.x()) / stage.scaleX(),
+        y: (screenPos.y - stage.y()) / stage.scaleY(),
+    };
 }
 
 /**
- * Resize the stage based on current viewport
- * Always scales relative to DEFAULT_GRID_SIZE (800px) as the reference point
+ * Resize stage to fill the canvas-wrapper.
+ * Called on window resize.
  */
 export function resizeStage() {
-    if (!stage) return;
-
-    const newGridSize = getResponsiveGridSize();
-
-    // Only resize if size actually changed
-    if (newGridSize === currentGridSize) return;
-
-    const oldGridSize = currentGridSize;
-    currentGridSize = newGridSize;
-
-    // Always calculate scale factor relative to DEFAULT_GRID_SIZE
-    const scaleFactor = newGridSize / DEFAULT_GRID_SIZE;
-
-    // Update stage size
-    stage.width(newGridSize);
-    stage.height(newGridSize);
-
-    // Scale all existing elements on the layers relative to DEFAULT_GRID_SIZE
-    layer.children.forEach(child => {
-        // Get original position/size (stored relative to DEFAULT_GRID_SIZE)
-        const originalX = child.attrs.originalX !== undefined ? child.attrs.originalX : child.x() / (oldGridSize / DEFAULT_GRID_SIZE);
-        const originalY = child.attrs.originalY !== undefined ? child.attrs.originalY : child.y() / (oldGridSize / DEFAULT_GRID_SIZE);
-
-        // Store original values for future resizes
-        child.attrs.originalX = originalX;
-        child.attrs.originalY = originalY;
-
-        // Apply new scale
-        child.x(originalX * scaleFactor);
-        child.y(originalY * scaleFactor);
-
-        // Scale circles (person circles)
-        if (child.radius) {
-            const originalRadius = child.attrs.originalRadius !== undefined ? child.attrs.originalRadius : child.radius() / (oldGridSize / DEFAULT_GRID_SIZE);
-            child.attrs.originalRadius = originalRadius;
-            child.radius(originalRadius * scaleFactor);
-        }
-
-        // Scale text labels
-        if (child.fontSize) {
-            const originalFontSize = child.attrs.originalFontSize !== undefined ? child.attrs.originalFontSize : child.fontSize() / (oldGridSize / DEFAULT_GRID_SIZE);
-            child.attrs.originalFontSize = originalFontSize;
-            child.fontSize(originalFontSize * scaleFactor);
-        }
-    });
-
-    // Dispatch custom event for other modules to react
-    // This will trigger route coordinate scaling and grid redraw
-    window.dispatchEvent(new CustomEvent('stageResize', {
-        detail: {
-            gridSize: newGridSize,
-            oldGridSize: oldGridSize,
-            scaleFactor
-        }
-    }));
-
-    // Redraw layers
-    gridLayer.batchDraw();
-    layer.batchDraw();
-}
-
-/**
- * Setup window resize listener with debouncing
- */
-function setupResizeListener() {
-    let resizeTimeout;
-
-    resizeListener = () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            resizeStage();
-        }, 250); // Debounce resize events
-    };
-
-    window.addEventListener('resize', resizeListener);
-    window.addEventListener('orientationchange', resizeListener);
-}
-
-/**
- * Setup zoom and pan functionality for the stage
- */
-function setupZoomAndPan() {
-    if (!stage) return;
-
-    // Enable stage dragging for panning
-    stage.draggable(true);
-
-    // Constrain panning using dragmove event
-    stage.on('dragmove', function() {
-        const wrapper = document.querySelector('.canvas-wrapper');
-        if (!wrapper) return;
-
-        const viewportWidth = wrapper.clientWidth;
-        const viewportHeight = wrapper.clientHeight;
-        const stageWidth = stage.width();
-        const stageHeight = stage.height();
-        const scale = currentZoom;
-        const pos = stage.position();
-
-        // Calculate scaled dimensions
-        const scaledWidth = stageWidth * scale;
-        const scaledHeight = stageHeight * scale;
-
-        // Calculate center position (accounts for Konva scaling from top-left)
-        // To keep the grid center visible when scaling
-        const centerX = (stageWidth / 2) * (1 - scale);
-        const centerY = (stageHeight / 2) * (1 - scale);
-
-        let newX, newY;
-
-        // Handle X-axis bounds
-        if (scaledWidth <= viewportWidth) {
-            // Stage fits within viewport - keep centered
-            newX = centerX;
-        } else {
-            // Stage is larger - allow panning with bounds
-            // Account for flexbox centering of #container within .canvas-wrapper
-            const containerOffsetX = (viewportWidth - stageWidth) / 2;
-            const maxX = -containerOffsetX; // Left edge visible at viewport left
-            const minX = viewportWidth - scaledWidth - containerOffsetX; // Right edge visible at viewport right
-            newX = Math.max(minX, Math.min(maxX, pos.x));
-        }
-
-        // Handle Y-axis bounds
-        if (scaledHeight <= viewportHeight) {
-            // Stage fits within viewport - keep centered
-            newY = centerY;
-        } else {
-            // Stage is larger - allow panning with bounds
-            const containerOffsetY = (viewportHeight - stageHeight) / 2;
-            const maxY = -containerOffsetY; // Top edge visible at viewport top
-            const minY = viewportHeight - scaledHeight - containerOffsetY; // Bottom edge visible at viewport bottom
-            newY = Math.max(minY, Math.min(maxY, pos.y));
-        }
-
-        // Apply constrained position
-        stage.position({ x: newX, y: newY });
-    });
-
-    // Pinch-to-zoom for touch devices
-    let lastDist = 0;
-    let lastCenter = null;
-
-    stage.on('touchmove', function (e) {
-        e.evt.preventDefault();
-        const touch1 = e.evt.touches[0];
-        const touch2 = e.evt.touches[1];
-
-        if (touch1 && touch2) {
-            // Disable dragging when using pinch gesture
-            stage.draggable(false);
-
-            // Calculate distance between two touches
-            const dist = getDistance({
-                x: touch1.clientX,
-                y: touch1.clientY
-            }, {
-                x: touch2.clientX,
-                y: touch2.clientY
-            });
-
-            if (!lastDist) {
-                lastDist = dist;
-            }
-
-            // Calculate center point between touches
-            const center = getCenter({
-                x: touch1.clientX,
-                y: touch1.clientY
-            }, {
-                x: touch2.clientX,
-                y: touch2.clientY
-            });
-
-            // Calculate new scale
-            const pointTo = {
-                x: (center.x - stage.x()) / currentZoom,
-                y: (center.y - stage.y()) / currentZoom,
-            };
-
-            const scale = (dist / lastDist) * currentZoom;
-            const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale));
-
-            setZoom(newZoom, pointTo);
-
-            lastDist = dist;
-            lastCenter = center;
-        }
-    });
-
-    stage.on('touchend', function () {
-        lastDist = 0;
-        lastCenter = null;
-        stage.draggable(panEnabled);
-    });
-
-    // Mouse wheel zoom for desktop (useful for testing)
-    stage.on('wheel', (e) => {
-        e.evt.preventDefault();
-
-        const oldZoom = currentZoom;
-        const pointer = stage.getPointerPosition();
-
-        const mousePointTo = {
-            x: (pointer.x - stage.x()) / oldZoom,
-            y: (pointer.y - stage.y()) / oldZoom,
-        };
-
-        const direction = e.evt.deltaY > 0 ? -1 : 1;
-        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, oldZoom + direction * ZOOM_STEP));
-
-        setZoom(newZoom, mousePointTo);
-    });
-}
-
-/**
- * Calculate distance between two points
- */
-function getDistance(p1, p2) {
-    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-}
-
-/**
- * Calculate center point between two points
- */
-function getCenter(p1, p2) {
-    return {
-        x: (p1.x + p2.x) / 2,
-        y: (p1.y + p2.y) / 2,
-    };
-}
-
-/**
- * Constrain stage position to stay within bounds
- */
-function constrainStageBounds() {
     if (!stage) return;
 
     const wrapper = document.querySelector('.canvas-wrapper');
     if (!wrapper) return;
 
-    const viewportWidth = wrapper.clientWidth;
-    const viewportHeight = wrapper.clientHeight;
-    const stageWidth = stage.width();
-    const stageHeight = stage.height();
-    const scale = currentZoom;
-    const pos = stage.position();
+    const newStageWidth  = wrapper.clientWidth;
+    const newStageHeight = wrapper.clientHeight;
 
-    // Calculate scaled dimensions
-    const scaledWidth = stageWidth * scale;
-    const scaledHeight = stageHeight * scale;
+    stage.width(newStageWidth);
+    stage.height(newStageHeight);
 
-    // Calculate center position (accounts for Konva scaling from top-left)
-    const centerX = (stageWidth / 2) * (1 - scale);
-    const centerY = (stageHeight / 2) * (1 - scale);
+    const newGridSize = getResponsiveGridSize();
+    if (newGridSize !== currentGridSize) {
+        const oldGridSize  = currentGridSize;
+        currentGridSize    = newGridSize;
+        const scaleFactor  = newGridSize / DEFAULT_GRID_SIZE;
 
-    let newX, newY;
+        layer.children.forEach(child => {
+            const originalX = child.attrs.originalX !== undefined
+                ? child.attrs.originalX
+                : child.x() / (oldGridSize / DEFAULT_GRID_SIZE);
+            const originalY = child.attrs.originalY !== undefined
+                ? child.attrs.originalY
+                : child.y() / (oldGridSize / DEFAULT_GRID_SIZE);
 
-    // Handle X-axis bounds
-    if (scaledWidth <= viewportWidth) {
-        // Stage fits within viewport - keep centered
-        newX = centerX;
-    } else {
-        // Stage is larger - allow panning with bounds
-        const containerOffsetX = (viewportWidth - stageWidth) / 2;
-        const maxX = -containerOffsetX;
-        const minX = viewportWidth - scaledWidth - containerOffsetX;
-        newX = Math.max(minX, Math.min(maxX, pos.x));
-    }
+            child.attrs.originalX = originalX;
+            child.attrs.originalY = originalY;
+            child.x(originalX * scaleFactor);
+            child.y(originalY * scaleFactor);
 
-    // Handle Y-axis bounds
-    if (scaledHeight <= viewportHeight) {
-        // Stage fits within viewport - keep centered
-        newY = centerY;
-    } else {
-        // Stage is larger - allow panning with bounds
-        const containerOffsetY = (viewportHeight - stageHeight) / 2;
-        const maxY = -containerOffsetY;
-        const minY = viewportHeight - scaledHeight - containerOffsetY;
-        newY = Math.max(minY, Math.min(maxY, pos.y));
-    }
+            if (child.radius) {
+                const originalRadius = child.attrs.originalRadius !== undefined
+                    ? child.attrs.originalRadius
+                    : child.radius() / (oldGridSize / DEFAULT_GRID_SIZE);
+                child.attrs.originalRadius = originalRadius;
+                child.radius(originalRadius * scaleFactor);
+            }
 
-    stage.position({ x: newX, y: newY });
-}
-
-/**
- * Set zoom level with optional center point
- * @param {number} newZoom - New zoom level
- * @param {Object} centerPoint - Optional center point {x, y}
- */
-export function setZoom(newZoom, centerPoint = null) {
-    if (!stage) return;
-
-    const oldZoom = currentZoom;
-    currentZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
-
-    if (centerPoint) {
-        const newPos = {
-            x: centerPoint.x * currentZoom,
-            y: centerPoint.y * currentZoom,
-        };
-
-        stage.position({
-            x: -(newPos.x - (centerPoint.x * oldZoom - stage.x())),
-            y: -(newPos.y - (centerPoint.y * oldZoom - stage.y())),
+            if (child.fontSize) {
+                const originalFontSize = child.attrs.originalFontSize !== undefined
+                    ? child.attrs.originalFontSize
+                    : child.fontSize() / (oldGridSize / DEFAULT_GRID_SIZE);
+                child.attrs.originalFontSize = originalFontSize;
+                child.fontSize(originalFontSize * scaleFactor);
+            }
         });
-    }
 
-    stage.scale({ x: currentZoom, y: currentZoom });
-
-    // Constrain position to stay within bounds
-    constrainStageBounds();
-
-    stage.batchDraw();
-
-    // Dispatch event for UI updates
-    window.dispatchEvent(new CustomEvent('zoomChanged', {
-        detail: { zoom: currentZoom }
-    }));
-}
-
-/**
- * Zoom in by one step
- */
-export function zoomIn() {
-    const centerPoint = {
-        x: stage.width() / 2,
-        y: stage.height() / 2,
-    };
-    setZoom(currentZoom + ZOOM_STEP, centerPoint);
-}
-
-/**
- * Zoom out by one step
- */
-export function zoomOut() {
-    const centerPoint = {
-        x: stage.width() / 2,
-        y: stage.height() / 2,
-    };
-    setZoom(currentZoom - ZOOM_STEP, centerPoint);
-}
-
-/**
- * Reset zoom to 1
- */
-export function resetZoom() {
-    currentZoom = 1;
-    if (stage) {
-        stage.scale({ x: 1, y: 1 });
-        stage.position({ x: 0, y: 0 });
-        stage.batchDraw();
-
-        window.dispatchEvent(new CustomEvent('zoomChanged', {
-            detail: { zoom: currentZoom }
+        window.dispatchEvent(new CustomEvent('stageResize', {
+            detail: { gridSize: newGridSize, oldGridSize, scaleFactor }
         }));
     }
+
+    // Re-clamp zoom in case the new viewport size raised the minimum
+    const minZoom = getMinZoom();
+    if (currentZoom < minZoom) {
+        currentZoom = minZoom;
+        stage.scale({ x: currentZoom, y: currentZoom });
+    }
+
+    // Re-clamp position to the new viewport size (re-centers when the
+    // grid fits; otherwise keeps the pan valid within the new bounds)
+    stage.position(getClampedPosition(stage.position(), currentZoom));
+
+    gridLayer.batchDraw();
+    layer.batchDraw();
+}
+
+function setupResizeListener() {
+    let resizeTimeout;
+    resizeListener = () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(resizeStage, 250);
+    };
+    window.addEventListener('resize', resizeListener);
+    window.addEventListener('orientationchange', resizeListener);
+
+    // CSS-transition-driven layout changes (e.g. sidebar collapse/expand)
+    // don't fire window 'resize', but they do fire ResizeObserver.
+    const wrapper = document.querySelector('.canvas-wrapper');
+    if (wrapper && 'ResizeObserver' in window) {
+        let observerTimeout;
+        resizeObserver = new ResizeObserver(() => {
+            clearTimeout(observerTimeout);
+            observerTimeout = setTimeout(resizeStage, 60);
+        });
+        resizeObserver.observe(wrapper);
+    }
 }
 
 /**
- * Get current zoom level
- * @returns {number} Current zoom level
+ * Set zoom level, keeping pointerScreenPos fixed on screen.
+ * @param {number}       newZoom         — target zoom level (will be clamped)
+ * @param {{x,y}|null}  pointerScreenPos — position in stage-container coords
+ *                                         to use as the zoom anchor
  */
-export function getCurrentZoom() {
-    return currentZoom;
+export function setZoom(newZoom, pointerScreenPos = null) {
+    if (!stage) return;
+
+    const clampedZoom = Math.max(getMinZoom(), Math.min(MAX_ZOOM, newZoom));
+    const oldScale    = stage.scaleX();
+
+    if (pointerScreenPos) {
+        // Standard Konva zoom-to-pointer formula:
+        // keep the content point under the pointer fixed on screen.
+        const mousePointTo = {
+            x: (pointerScreenPos.x - stage.x()) / oldScale,
+            y: (pointerScreenPos.y - stage.y()) / oldScale,
+        };
+        stage.scale({ x: clampedZoom, y: clampedZoom });
+        const newPos = {
+            x: pointerScreenPos.x - mousePointTo.x * clampedZoom,
+            y: pointerScreenPos.y - mousePointTo.y * clampedZoom,
+        };
+        stage.position(getClampedPosition(newPos, clampedZoom));
+    } else {
+        stage.scale({ x: clampedZoom, y: clampedZoom });
+        stage.position(getClampedPosition(stage.position(), clampedZoom));
+    }
+
+    currentZoom = clampedZoom;
+    stage.batchDraw();
+
+    window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: currentZoom } }));
 }
 
-/**
- * Enable or disable panning
- * @param {boolean} enabled - Enable panning
- */
+/** Zoom in, anchored to the viewport centre. */
+export function zoomIn() {
+    setZoom(currentZoom * ZOOM_FACTOR, {
+        x: stage.width()  / 2,
+        y: stage.height() / 2,
+    });
+}
+
+/** Zoom out, anchored to the viewport centre. */
+export function zoomOut() {
+    setZoom(currentZoom / ZOOM_FACTOR, {
+        x: stage.width()  / 2,
+        y: stage.height() / 2,
+    });
+}
+
+/** Reset to default zoom and re-center the grid. */
+export function resetZoom() {
+    if (!stage) return;
+    currentZoom = 1;
+    stage.scale({ x: 1, y: 1 });
+    stage.position(getClampedPosition({ x: 0, y: 0 }, 1));
+    stage.batchDraw();
+    window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: 1 } }));
+}
+
 let panEnabled = true;
 
 export function setPanEnabled(enabled) {
     panEnabled = enabled;
-    if (stage) {
-        stage.draggable(enabled);
-    }
+    if (stage) stage.draggable(enabled);
 }
 
-/**
- * Remove resize listener (cleanup)
- */
+function setupZoomAndPan() {
+    if (!stage) return;
+
+    stage.draggable(panEnabled);
+    stage.dragBoundFunc((pos) => getClampedPosition(pos, stage.scaleX()));
+
+    // Mouse-wheel zoom — multiplicative, anchored to the cursor
+    stage.on('wheel', (e) => {
+        e.evt.preventDefault();
+        const direction = e.evt.deltaY > 0 ? -1 : 1;
+        const newZoom   = direction > 0
+            ? currentZoom * ZOOM_FACTOR
+            : currentZoom / ZOOM_FACTOR;
+        setZoom(newZoom, stage.getPointerPosition());
+    });
+
+    // Pinch-to-zoom (touch)
+    let lastDist   = 0;
+
+    stage.on('touchmove', (e) => {
+        e.evt.preventDefault();
+        const touch1 = e.evt.touches[0];
+        const touch2 = e.evt.touches[1];
+        if (!touch1 || !touch2) return;
+
+        stage.draggable(false);
+
+        const dist = Math.hypot(
+            touch2.clientX - touch1.clientX,
+            touch2.clientY - touch1.clientY,
+        );
+
+        if (lastDist) {
+            const rect = stage.container().getBoundingClientRect();
+            const pinchCenter = {
+                x: ((touch1.clientX + touch2.clientX) / 2) - rect.left,
+                y: ((touch1.clientY + touch2.clientY) / 2) - rect.top,
+            };
+            setZoom((dist / lastDist) * currentZoom, pinchCenter);
+        }
+
+        lastDist = dist;
+    });
+
+    stage.on('touchend', () => {
+        lastDist = 0;
+        stage.draggable(panEnabled);
+    });
+}
+
 export function cleanupStage() {
     if (resizeListener) {
         window.removeEventListener('resize', resizeListener);
         window.removeEventListener('orientationchange', resizeListener);
         resizeListener = null;
     }
-
+    if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = null;
+    }
     if (stage) {
         stage.destroy();
         stage = null;
         layer = null;
         gridLayer = null;
     }
-
-    // Reset zoom
     currentZoom = 1;
-}
-
-/**
- * Get the current stage
- * @returns {Konva.Stage} Stage instance
- */
-export function getStage() {
-    return stage;
-}
-
-/**
- * Get the main layer
- * @returns {Konva.Layer} Layer instance
- */
-export function getLayer() {
-    return layer;
-}
-
-/**
- * Get the grid layer
- * @returns {Konva.Layer} Grid layer instance
- */
-export function getGridLayer() {
-    return gridLayer;
 }

@@ -372,13 +372,18 @@ body {
     background: var(--color-white);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     flex: 1;
-    padding: 1em;
     position: relative;
     overflow: hidden;
+}
+
+/* Konva container fills the whole wrapper so the stage can control centering */
+#container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }
 
 .canvas-buttons {
@@ -454,21 +459,8 @@ body {
     background: var(--color-primary-dark);
 }
 
-.canvas-wrapper::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    pointer-events: none;
-    box-shadow: inset 0 0 10px 15px rgba(255,255,255,1);
-    border-radius: var(--radius-md);
-}
-
 #mirrorModeGroup input {
     width: unset;
-}
-
-#container {
-    position: relative;
 }
 
 /* ============================================================

@@ -16,7 +16,7 @@ import { showAdminPanel, hideAdminPanel, createNewUser, loadAdminMappingData, on
 import { showStatus } from "./modules/ui/statusUI.js";
 import { showLoginScreen, showProjectSelection, showApp, isMobile } from "./modules/utils/screenUtils.js";
 import { snapToGrid, samplePathUniform } from "./modules/utils/gridUtils.js";
-import { initializeStage, getStage, getLayer, getGridLayer, zoomIn, zoomOut, resetZoom, setPanEnabled } from "./modules/canvas/stage.js";
+import { initializeStage, getStage, getLayer, getGridLayer, zoomIn, zoomOut, resetZoom, setPanEnabled, pointerToContent } from "./modules/canvas/stage.js";
 import { drawGrid } from "./modules/canvas/grid.js";
 import { createPerson, createPeopleFromData, addPersonToCanvas, removePersonFromCanvas, resetPositions } from "./modules/canvas/person.js";
 import { redrawRoutes, clearRoute, clearAllRoutes, copyPersonRoute, computeCopiedRoute, drawRoutePreview, clearRoutePreview } from "./modules/canvas/routes.js";
@@ -590,7 +590,7 @@ function setupEventListeners() {
 
         isDrawing = true;
         rawDrawPath = [];
-        const pos = stage.getPointerPosition();
+        const pos = pointerToContent(stage.getPointerPosition());
         rawDrawPath.push({ x: snapToGrid(pos.x), y: snapToGrid(pos.y) });
     });
 
@@ -618,7 +618,7 @@ function setupEventListeners() {
         if (State.getInputMode() === 'draw') return;
 
         if (pickingStartingPoint) {
-            const pos = stage.getPointerPosition();
+            const pos = pointerToContent(stage.getPointerPosition());
             finishPickStartingPoint(snapToGrid(pos.x), snapToGrid(pos.y));
             return;
         }
@@ -652,7 +652,7 @@ function setupEventListeners() {
             return;
         }
 
-        const pos = stage.getPointerPosition();
+        const pos = pointerToContent(stage.getPointerPosition());
         const snappedX = snapToGrid(pos.x);
         const snappedY = snapToGrid(pos.y);
         currentSteps += 1;
@@ -683,7 +683,7 @@ function setupEventListeners() {
     // Canvas mousemove - preview while picking starting point / draw mode path / step counter
     stage.on('mousemove', (e) => {
         if (pickingStartingPoint) {
-            const pos = stage.getPointerPosition();
+            const pos = pointerToContent(stage.getPointerPosition());
             const sx = snapToGrid(pos.x);
             const sy = snapToGrid(pos.y);
             const { fromId, mirrorX, mirrorY, mirrorMode } = getMirrorPreviewParams();
@@ -713,7 +713,7 @@ function setupEventListeners() {
                 stepCounterText = null;
             }
             if (isDrawing) {
-                const pos = stage.getPointerPosition();
+                const pos = pointerToContent(stage.getPointerPosition());
                 const last = rawDrawPath[rawDrawPath.length - 1];
                 if (!last || Math.hypot(pos.x - last.x, pos.y - last.y) > 5) {
                     rawDrawPath.push({ x: pos.x, y: pos.y });
@@ -749,7 +749,7 @@ function setupEventListeners() {
             return;
         }
 
-        const pos = stage.getPointerPosition();
+        const pos = pointerToContent(stage.getPointerPosition());
         const snappedX = snapToGrid(pos.x);
         const snappedY = snapToGrid(pos.y);
 
